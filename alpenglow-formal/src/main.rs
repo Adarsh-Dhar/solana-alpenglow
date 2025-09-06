@@ -1,56 +1,73 @@
-use stateright::{Actor, ActorModel, Checker, Expectation, Model};
-use std::sync::Arc;
+use stateright::{report::WriteReporter, *};
 
-// 1. DEFINE THE STATE of a single actor (a simple counter).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Counter {
-    value: u32,
-}
-
-// 2. DEFINE THE ACTIONS that can happen.
+// 1. DEFINE THE ACTIONS that can happen.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum Action {
     Increment,
     Decrement,
 }
 
-// 3. IMPLEMENT THE ACTOR LOGIC.
-impl Actor for Counter {
-    type Msg = (); // No messages needed for this simple model.
-    type State = u32; // The actor's state is just a number.
-    type Timer = (); // No timers needed.
+// 2. DEFINE THE STATE of the system.
+#[derive(Clone, Debug, Default, Hash, PartialEq)]
+struct State {
+    counter: i32,
+}
 
-    fn on_start(&self, _id: stateright::ActorId, o: &mut stateright::Out<Self>) {
-        // When the actor starts, it can choose to either increment or decrement.
-        o.send_action(Action::Increment);
-        o.send_action(Action::Decrement);
+impl State {
+    fn new() -> Self {
+        Self { counter: 0 }
     }
-    
-    fn on_action(&self, _id: stateright::ActorId, state: &mut Self::State, action: Self::Action, o: &mut stateright::Out<Self>) {
-        // Based on the action, change the state.
+}
+
+// 3. IMPLEMENT THE MODEL LOGIC.
+impl Model for State {
+    type State = State;
+    type Action = Action;
+
+    fn init_states(&self) -> Vec<Self::State> {
+        vec![State::new()]
+    }
+
+    fn actions(&self, _state: &Self::State, actions: &mut Vec<Self::Action>) {
+        // Always allow both increment and decrement actions
+        actions.push(Action::Increment);
+        actions.push(Action::Decrement);
+    }
+
+    fn next_state(&self, last_state: &Self::State, action: Self::Action) -> Option<Self::State> {
+        let mut state = last_state.clone();
         match action {
-            Action::Increment => *state += 1,
-            Action::Decrement => *state -= 1,
+            Action::Increment => {
+                state.counter += 1;
+            }
+            Action::Decrement => {
+                state.counter -= 1;
+            }
         }
-        // After acting, the actor can choose its next actions.
-        o.send_action(Action::Increment);
-        o.send_action(Action::Decrement);
+        Some(state)
+    }
+
+    fn properties(&self) -> Vec<Property<Self>> {
+        vec![
+            Property::<Self>::always("counter <= 5", |_, state| {
+                state.counter <= 5
+            }),
+            Property::<Self>::always("counter >= -5", |_, state| {
+                state.counter >= -5
+            }),
+        ]
     }
 }
 
 // 4. CONFIGURE AND RUN THE CHECKER.
 fn main() {
-    // Define the model. We'll have two counter actors.
-    let model = ActorModel::new(0, // Initial global state
-        vec![
-            Counter { value: 0 },
-            Counter { value: 0 },
-        ])
-        .property(Expectation::Always, "value <= 5", |_, state| {
-            // This property checks that the sum of counters never exceeds 5.
-            state.actor_states.iter().all(|s| *s <= 5)
-        });
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
-    // Run the checker.
-    Checker::new(model).run_mc();
+    println!("Model checking counter system...");
+
+    State::new()
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs()
+        .report(&mut WriteReporter::new(&mut std::io::stdout()));
 }
