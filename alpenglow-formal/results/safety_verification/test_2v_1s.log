@@ -1,6 +1,105 @@
-    Finished `release` profile [optimized] target(s) in 0.13s
+warning: constant `MAX_SLOTS` is never used
+  --> src/certificate.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/certificate.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/leader.rs:10:7
+   |
+10 | const MAX_SLOTS: u64 = 10; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/leader.rs:11:7
+   |
+11 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/timeout.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/timeout.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_NODES` is never used
+ --> src/rotor.rs:9:7
+  |
+9 | const MAX_NODES: usize = 5; // Formal verification limit
+  |       ^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/rotor.rs:10:7
+   |
+10 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/modelling/safety.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/modelling/safety.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_BYZANTINE` is never used
+  --> src/modelling/safety.rs:13:7
+   |
+13 | const MAX_BYZANTINE: usize = 1; // Formal verification limit
+   |       ^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/modelling/liveness.rs:12:7
+   |
+12 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/modelling/liveness.rs:13:7
+   |
+13 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/modelling/resilience.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/modelling/resilience.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_BYZANTINE` is never used
+  --> src/modelling/resilience.rs:13:7
+   |
+13 | const MAX_BYZANTINE: usize = 1; // Formal verification limit
+   |       ^^^^^^^^^^^^^
+
+warning: `alpenglow-formal` (lib) generated 16 warnings
+    Finished `release` profile [optimized] target(s) in 0.09s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/safety_verification --validators 2 --slots 1 --seed 12345`
 Running safety verification with 2 validators, 1 slots, seed 12345
-Checking. states=3, unique=3, depth=1
-Done. states=3065, unique=456, depth=21, sec=1
+Checking. states=19, unique=16, depth=3
+Done. states=2197, unique=324, depth=15, sec=1
 Property 'safety' is always true

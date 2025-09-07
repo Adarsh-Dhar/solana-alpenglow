@@ -1,0 +1,542 @@
+warning: constant `MAX_SLOTS` is never used
+  --> src/certificate.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/certificate.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/leader.rs:10:7
+   |
+10 | const MAX_SLOTS: u64 = 10; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/leader.rs:11:7
+   |
+11 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/timeout.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/timeout.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_NODES` is never used
+ --> src/rotor.rs:9:7
+  |
+9 | const MAX_NODES: usize = 5; // Formal verification limit
+  |       ^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/rotor.rs:10:7
+   |
+10 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/modelling/safety.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/modelling/safety.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_BYZANTINE` is never used
+  --> src/modelling/safety.rs:13:7
+   |
+13 | const MAX_BYZANTINE: usize = 1; // Formal verification limit
+   |       ^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/modelling/liveness.rs:12:7
+   |
+12 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/modelling/liveness.rs:13:7
+   |
+13 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_SLOTS` is never used
+  --> src/modelling/resilience.rs:11:7
+   |
+11 | const MAX_SLOTS: u64 = 5; // Formal verification limit
+   |       ^^^^^^^^^
+
+warning: constant `MAX_VALIDATORS` is never used
+  --> src/modelling/resilience.rs:12:7
+   |
+12 | const MAX_VALIDATORS: usize = 5; // Formal verification limit
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_BYZANTINE` is never used
+  --> src/modelling/resilience.rs:13:7
+   |
+13 | const MAX_BYZANTINE: usize = 1; // Formal verification limit
+   |       ^^^^^^^^^^^^^
+
+warning: `alpenglow-formal` (lib) generated 16 warnings
+    Finished `release` profile [optimized] target(s) in 0.31s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/safety_verification --validators 3 --slots 2 --seed 12345`
+Running safety verification with 3 validators, 2 slots, seed 12345
+Checking. states=51, unique=48, depth=4
+Checking. states=1334136, unique=83660, depth=91
+Checking. states=2449576, unique=147060, depth=91
+Checking. states=3625302, unique=212423, depth=91
+Checking. states=5240651, unique=301797, depth=91
+Checking. states=6705075, unique=379960, depth=91
+Checking. states=8389605, unique=471775, depth=91
+Checking. states=10141025, unique=563045, depth=91
+Checking. states=11712957, unique=645791, depth=91
+Checking. states=13213660, unique=725562, depth=91
+Checking. states=14953860, unique=816190, depth=96
+Checking. states=16562481, unique=902454, depth=96
+Checking. states=18124200, unique=990288, depth=96
+Checking. states=19593134, unique=1069710, depth=96
+Checking. states=21076608, unique=1152256, depth=96
+Checking. states=22207037, unique=1213303, depth=96
+Checking. states=23449773, unique=1278714, depth=96
+Checking. states=24685748, unique=1344723, depth=96
+Checking. states=26269606, unique=1427617, depth=96
+Checking. states=27782315, unique=1506008, depth=96
+Checking. states=29231958, unique=1583468, depth=96
+Checking. states=30685110, unique=1661648, depth=96
+Checking. states=31887658, unique=1725216, depth=96
+Checking. states=33144273, unique=1791671, depth=96
+Checking. states=34491813, unique=1863604, depth=96
+Checking. states=35782872, unique=1930213, depth=96
+Checking. states=36422488, unique=1962654, depth=96
+Checking. states=36766252, unique=1980126, depth=96
+Checking. states=37184873, unique=2001289, depth=96
+Checking. states=38208309, unique=2054278, depth=96
+Checking. states=39576209, unique=2125352, depth=96
+Checking. states=40951271, unique=2195319, depth=96
+Checking. states=42466804, unique=2272541, depth=96
+Checking. states=43910526, unique=2345917, depth=96
+Checking. states=45336282, unique=2417202, depth=96
+Checking. states=46786797, unique=2490822, depth=96
+Checking. states=48225779, unique=2567401, depth=96
+Checking. states=49681235, unique=2642617, depth=96
+Checking. states=51183500, unique=2718989, depth=96
+Checking. states=52667008, unique=2793960, depth=96
+Checking. states=54212945, unique=2870032, depth=96
+Checking. states=55767680, unique=2947950, depth=101
+Checking. states=57305497, unique=3028386, depth=101
+Checking. states=58757553, unique=3101953, depth=101
+Checking. states=60281326, unique=3178754, depth=101
+Checking. states=60841964, unique=3206455, depth=101
+Checking. states=61970560, unique=3261942, depth=101
+Checking. states=62676431, unique=3297821, depth=101
+Checking. states=64025021, unique=3364628, depth=101
+Checking. states=65390590, unique=3435501, depth=101
+Checking. states=66759247, unique=3505193, depth=101
+Checking. states=68122675, unique=3573138, depth=101
+Checking. states=69277727, unique=3630606, depth=101
+Checking. states=70321301, unique=3681541, depth=101
+Checking. states=71444905, unique=3738673, depth=101
+Checking. states=72726087, unique=3806639, depth=101
+Checking. states=74103595, unique=3878966, depth=101
+Checking. states=75507528, unique=3950086, depth=101
+Checking. states=76817608, unique=4015531, depth=101
+Checking. states=78189394, unique=4084655, depth=101
+Checking. states=79513593, unique=4153580, depth=101
+Checking. states=80949507, unique=4228239, depth=101
+Checking. states=82366933, unique=4301064, depth=101
+Checking. states=83798830, unique=4375833, depth=101
+Checking. states=85227575, unique=4450456, depth=101
+Checking. states=86512045, unique=4516420, depth=101
+Checking. states=87873547, unique=4586041, depth=101
+Checking. states=89277522, unique=4657256, depth=101
+Checking. states=90538946, unique=4720837, depth=101
+Checking. states=91803188, unique=4786779, depth=101
+Checking. states=93092001, unique=4852448, depth=101
+Checking. states=94230777, unique=4909374, depth=101
+Checking. states=95484582, unique=4971312, depth=101
+Checking. states=96653947, unique=5031291, depth=101
+Checking. states=97967587, unique=5097010, depth=101
+Checking. states=99228332, unique=5160630, depth=101
+Checking. states=100491295, unique=5225710, depth=101
+Checking. states=101776334, unique=5292192, depth=101
+Checking. states=103064674, unique=5357593, depth=101
+Checking. states=104334092, unique=5422665, depth=101
+Checking. states=105654944, unique=5488966, depth=101
+Checking. states=106954501, unique=5554405, depth=101
+Checking. states=108259977, unique=5618577, depth=101
+Checking. states=109574801, unique=5681772, depth=101
+Checking. states=110868339, unique=5747987, depth=101
+Checking. states=112096861, unique=5811401, depth=101
+Checking. states=113475966, unique=5881990, depth=101
+Checking. states=114899406, unique=5953028, depth=101
+Checking. states=116235000, unique=6018833, depth=101
+Checking. states=117540799, unique=6083359, depth=101
+Checking. states=118834109, unique=6150615, depth=101
+Checking. states=120148281, unique=6216683, depth=101
+Checking. states=121398832, unique=6279352, depth=101
+Checking. states=122611312, unique=6339422, depth=101
+Checking. states=123823262, unique=6398992, depth=101
+Checking. states=125104318, unique=6464314, depth=101
+Checking. states=126519167, unique=6537408, depth=101
+Checking. states=128044439, unique=6616355, depth=101
+Checking. states=129104741, unique=6670896, depth=101
+Checking. states=130330713, unique=6732746, depth=101
+Checking. states=131741215, unique=6804266, depth=101
+Checking. states=133052026, unique=6869730, depth=101
+Checking. states=134356799, unique=6937429, depth=101
+Checking. states=135476291, unique=6994566, depth=101
+Checking. states=136722274, unique=7056967, depth=101
+Checking. states=137944494, unique=7118620, depth=101
+Checking. states=138450757, unique=7143981, depth=101
+Checking. states=138953352, unique=7168754, depth=101
+Checking. states=139822979, unique=7211640, depth=101
+Checking. states=141012677, unique=7270377, depth=101
+Checking. states=142262821, unique=7331826, depth=101
+Checking. states=143194030, unique=7377002, depth=101
+Checking. states=144254820, unique=7428481, depth=101
+Checking. states=145256420, unique=7477774, depth=101
+Checking. states=146547512, unique=7540602, depth=101
+Checking. states=147860104, unique=7604881, depth=101
+Checking. states=149152473, unique=7668513, depth=101
+Checking. states=150454216, unique=7731769, depth=101
+Checking. states=151689589, unique=7791031, depth=101
+Checking. states=152992120, unique=7852987, depth=101
+Checking. states=154347670, unique=7922137, depth=101
+Checking. states=155715247, unique=7991126, depth=101
+Checking. states=157106014, unique=8059534, depth=101
+Checking. states=158499666, unique=8128636, depth=101
+Checking. states=159802776, unique=8190970, depth=101
+Checking. states=161170445, unique=8258135, depth=101
+Checking. states=162543204, unique=8326465, depth=101
+Checking. states=163941537, unique=8394890, depth=101
+Checking. states=165331408, unique=8464252, depth=101
+Checking. states=166709211, unique=8531303, depth=101
+Checking. states=168052937, unique=8596421, depth=101
+Checking. states=169353985, unique=8658542, depth=101
+Checking. states=170753074, unique=8726680, depth=101
+Checking. states=172121677, unique=8795768, depth=101
+Checking. states=173493671, unique=8863213, depth=101
+Checking. states=174851192, unique=8928613, depth=101
+Checking. states=176189034, unique=8992305, depth=101
+Checking. states=177527228, unique=9056016, depth=101
+Checking. states=178678330, unique=9111561, depth=101
+Checking. states=179824259, unique=9166031, depth=101
+Checking. states=180928310, unique=9218548, depth=101
+Checking. states=181934916, unique=9265581, depth=101
+Checking. states=183065121, unique=9318945, depth=101
+Checking. states=184182378, unique=9372436, depth=101
+Checking. states=185523747, unique=9435399, depth=101
+Checking. states=186903295, unique=9498553, depth=101
+Checking. states=188308974, unique=9564447, depth=101
+Checking. states=189746975, unique=9631503, depth=101
+Checking. states=190834962, unique=9683937, depth=101
+Checking. states=192238007, unique=9749628, depth=101
+Checking. states=193613197, unique=9817406, depth=101
+Checking. states=194995257, unique=9884530, depth=101
+Checking. states=196389712, unique=9951592, depth=101
+Checking. states=197477805, unique=10003680, depth=101
+Checking. states=198832753, unique=10067472, depth=101
+Checking. states=200144365, unique=10130505, depth=101
+Checking. states=201371114, unique=10188837, depth=101
+Checking. states=202639785, unique=10248194, depth=101
+Checking. states=203932564, unique=10308310, depth=101
+Checking. states=205220486, unique=10367994, depth=101
+Checking. states=206469574, unique=10425130, depth=101
+Checking. states=207653079, unique=10478808, depth=101
+Checking. states=208933891, unique=10538294, depth=101
+Checking. states=210236813, unique=10602920, depth=101
+Checking. states=211530524, unique=10664645, depth=101
+Checking. states=212675785, unique=10725303, depth=101
+Checking. states=213556156, unique=10769008, depth=101
+Checking. states=213664571, unique=10775311, depth=101
+Checking. states=214347756, unique=10810797, depth=101
+Checking. states=214891489, unique=10838133, depth=101
+Checking. states=216191397, unique=10904283, depth=101
+Checking. states=217552006, unique=10973418, depth=101
+Checking. states=218937375, unique=11042590, depth=101
+Checking. states=220233638, unique=11107049, depth=101
+Checking. states=221430848, unique=11167542, depth=101
+Checking. states=222714166, unique=11234332, depth=101
+Checking. states=223248714, unique=11262482, depth=101
+Checking. states=223596411, unique=11280239, depth=101
+Checking. states=223943001, unique=11297950, depth=101
+Checking. states=224386603, unique=11319935, depth=101
+Checking. states=225648114, unique=11387157, depth=101
+Checking. states=227001301, unique=11458323, depth=101
+Checking. states=228214090, unique=11520996, depth=101
+Checking. states=229358402, unique=11579154, depth=101
+Checking. states=230564638, unique=11640434, depth=101
+Checking. states=231873831, unique=11707347, depth=101
+Checking. states=232712228, unique=11749954, depth=101
+Checking. states=233763477, unique=11802956, depth=101
+Checking. states=235034906, unique=11866143, depth=101
+Checking. states=236290937, unique=11928403, depth=101
+Checking. states=237546031, unique=11989209, depth=101
+Checking. states=238809235, unique=12051101, depth=101
+Checking. states=240082848, unique=12114827, depth=101
+Checking. states=241361382, unique=12178688, depth=101
+Checking. states=242565105, unique=12239398, depth=101
+Checking. states=243819936, unique=12301460, depth=101
+Checking. states=245140283, unique=12367862, depth=101
+Checking. states=246617424, unique=12441964, depth=101
+Checking. states=248051842, unique=12513177, depth=101
+Checking. states=249503507, unique=12583645, depth=101
+Checking. states=250845403, unique=12649780, depth=101
+Checking. states=252257324, unique=12717580, depth=101
+Checking. states=253592002, unique=12783481, depth=101
+Checking. states=255094612, unique=12856712, depth=101
+Checking. states=256587160, unique=12927995, depth=101
+Checking. states=257990557, unique=12992766, depth=101
+Checking. states=259175013, unique=13051784, depth=101
+Checking. states=260216363, unique=13104307, depth=101
+Checking. states=261368674, unique=13161151, depth=101
+Checking. states=262677536, unique=13225961, depth=101
+Checking. states=263648734, unique=13274156, depth=101
+Checking. states=264676676, unique=13323693, depth=101
+Checking. states=265561731, unique=13364660, depth=101
+Checking. states=266924403, unique=13433394, depth=101
+Checking. states=268356239, unique=13504553, depth=101
+Checking. states=269720684, unique=13573505, depth=101
+Checking. states=271068464, unique=13639393, depth=101
+Checking. states=272418199, unique=13706649, depth=101
+Checking. states=273644538, unique=13767183, depth=101
+Checking. states=274894771, unique=13828977, depth=101
+Checking. states=276145092, unique=13889714, depth=101
+Checking. states=277382891, unique=13951490, depth=101
+Checking. states=278619216, unique=14013629, depth=101
+Checking. states=279898224, unique=14075870, depth=101
+Checking. states=281165918, unique=14137727, depth=101
+Checking. states=282445369, unique=14199122, depth=101
+Checking. states=283849822, unique=14268184, depth=101
+Checking. states=284985651, unique=14323942, depth=101
+Checking. states=285484020, unique=14347695, depth=101
+Checking. states=286634082, unique=14402683, depth=101
+Checking. states=288062425, unique=14473655, depth=101
+Checking. states=289428034, unique=14540580, depth=101
+Checking. states=290733974, unique=14605635, depth=101
+Checking. states=291994859, unique=14666890, depth=101
+Checking. states=293139596, unique=14721653, depth=101
+Checking. states=294512203, unique=14788388, depth=101
+Checking. states=295874230, unique=14854720, depth=101
+Checking. states=297003551, unique=14909254, depth=101
+Checking. states=298336142, unique=14972427, depth=101
+Checking. states=299362531, unique=15020416, depth=101
+Checking. states=300322413, unique=15065390, depth=101
+Checking. states=301507832, unique=15123369, depth=101
+Checking. states=302847462, unique=15188864, depth=101
+Checking. states=304181654, unique=15254386, depth=101
+Checking. states=305503550, unique=15318132, depth=101
+Checking. states=306744078, unique=15377376, depth=101
+Checking. states=308006248, unique=15436675, depth=101
+Checking. states=309290143, unique=15496508, depth=101
+Checking. states=310689743, unique=15561026, depth=101
+Checking. states=312077643, unique=15627485, depth=101
+Checking. states=313396194, unique=15690566, depth=101
+Checking. states=314734948, unique=15753653, depth=101
+Checking. states=316119706, unique=15818393, depth=101
+Checking. states=317533549, unique=15883305, depth=101
+Checking. states=318889930, unique=15945133, depth=101
+Checking. states=320184100, unique=16004733, depth=101
+Checking. states=321462719, unique=16066251, depth=101
+Checking. states=322525351, unique=16115964, depth=101
+Checking. states=323632408, unique=16167356, depth=101
+Checking. states=324704202, unique=16216127, depth=101
+Checking. states=326028687, unique=16277228, depth=101
+Checking. states=327359122, unique=16337301, depth=101
+Checking. states=328708266, unique=16397394, depth=101
+Checking. states=329953342, unique=16454655, depth=101
+Checking. states=331475122, unique=16528643, depth=101
+Checking. states=332892403, unique=16596939, depth=101
+Checking. states=334492818, unique=16673806, depth=101
+Checking. states=335878004, unique=16742189, depth=101
+Checking. states=337223647, unique=16806171, depth=101
+Checking. states=338420654, unique=16863621, depth=101
+Checking. states=339831467, unique=16930836, depth=101
+Checking. states=341088956, unique=16993432, depth=101
+Checking. states=342139183, unique=17044655, depth=101
+Checking. states=343598830, unique=17114326, depth=101
+Checking. states=345010265, unique=17182674, depth=101
+Checking. states=346316332, unique=17245879, depth=101
+Checking. states=347761721, unique=17314326, depth=101
+Checking. states=349263207, unique=17385296, depth=101
+Checking. states=350690819, unique=17451226, depth=101
+Checking. states=352167658, unique=17521185, depth=101
+Checking. states=353672040, unique=17592397, depth=101
+Checking. states=355182445, unique=17663052, depth=101
+Checking. states=356720655, unique=17737279, depth=101
+Checking. states=358210470, unique=17807922, depth=101
+Checking. states=359685426, unique=17875783, depth=101
+Checking. states=361187791, unique=17948202, depth=101
+Checking. states=362772015, unique=18023373, depth=101
+Checking. states=364374825, unique=18099835, depth=101
+Checking. states=365331323, unique=18144423, depth=101
+Checking. states=366099522, unique=18181370, depth=101
+Checking. states=367542123, unique=18249542, depth=101
+Checking. states=369129389, unique=18325192, depth=101
+Checking. states=370697123, unique=18397412, depth=101
+Checking. states=372240510, unique=18468595, depth=101
+Checking. states=373827765, unique=18542817, depth=101
+Checking. states=375413169, unique=18618035, depth=101
+Checking. states=376993518, unique=18692207, depth=101
+Checking. states=378507914, unique=18763019, depth=101
+Checking. states=379954235, unique=18830531, depth=101
+Checking. states=381463328, unique=18900592, depth=101
+Checking. states=382694758, unique=18956125, depth=101
+Checking. states=384005915, unique=19017931, depth=101
+Checking. states=385210577, unique=19074006, depth=101
+Checking. states=386690231, unique=19141149, depth=101
+Checking. states=388064322, unique=19203645, depth=101
+Checking. states=389594185, unique=19272914, depth=101
+Checking. states=390977660, unique=19335633, depth=101
+Checking. states=392170043, unique=19390166, depth=101
+Checking. states=393533880, unique=19454024, depth=101
+Checking. states=393858784, unique=19469100, depth=101
+Checking. states=394149984, unique=19482222, depth=101
+Checking. states=395175674, unique=19530034, depth=101
+Checking. states=396511763, unique=19590688, depth=101
+Checking. states=397997150, unique=19657586, depth=101
+Checking. states=399098224, unique=19707203, depth=101
+Checking. states=400227455, unique=19757078, depth=101
+Checking. states=401152908, unique=19797236, depth=101
+Checking. states=402697402, unique=19869458, depth=101
+Checking. states=404276004, unique=19944886, depth=101
+Checking. states=405640597, unique=20009955, depth=101
+Checking. states=406877676, unique=20066906, depth=101
+Checking. states=408290248, unique=20132271, depth=101
+Checking. states=409717401, unique=20198101, depth=101
+Checking. states=411112473, unique=20263542, depth=101
+Checking. states=412374625, unique=20322015, depth=101
+Checking. states=413660807, unique=20383199, depth=101
+Checking. states=414978951, unique=20444438, depth=101
+Checking. states=416216794, unique=20500744, depth=101
+Checking. states=417554659, unique=20561763, depth=101
+Checking. states=418845001, unique=20622093, depth=101
+Checking. states=420182383, unique=20683822, depth=101
+Checking. states=421520190, unique=20743176, depth=101
+Checking. states=422795455, unique=20801580, depth=101
+Checking. states=424213721, unique=20865941, depth=101
+Checking. states=425643260, unique=20931160, depth=101
+Checking. states=427165875, unique=21003709, depth=101
+Checking. states=428658335, unique=21073522, depth=101
+Checking. states=430126633, unique=21141438, depth=101
+Checking. states=431491345, unique=21202755, depth=101
+Checking. states=432791076, unique=21263859, depth=101
+Checking. states=434130974, unique=21327808, depth=101
+Checking. states=435606632, unique=21395290, depth=101
+Checking. states=437099279, unique=21466858, depth=101
+Checking. states=438603365, unique=21537173, depth=101
+Checking. states=440006734, unique=21600865, depth=101
+Checking. states=441463170, unique=21668112, depth=101
+Checking. states=442903965, unique=21733078, depth=101
+Checking. states=444315734, unique=21797906, depth=101
+Checking. states=445407798, unique=21854395, depth=101
+Checking. states=446003627, unique=21884527, depth=101
+Checking. states=447242368, unique=21945989, depth=101
+Checking. states=448725566, unique=22019017, depth=101
+Checking. states=450174116, unique=22089661, depth=101
+Checking. states=451622335, unique=22160645, depth=101
+Checking. states=453074248, unique=22230213, depth=101
+Checking. states=454478374, unique=22298230, depth=101
+Checking. states=455891894, unique=22367000, depth=101
+Checking. states=457298470, unique=22437808, depth=101
+Checking. states=458704173, unique=22506922, depth=101
+Checking. states=460107675, unique=22574425, depth=101
+Checking. states=461578465, unique=22645136, depth=101
+Checking. states=463037981, unique=22715350, depth=101
+Checking. states=464468919, unique=22782281, depth=101
+Checking. states=465931856, unique=22851839, depth=101
+Checking. states=467318081, unique=22919087, depth=101
+Checking. states=468725766, unique=22989695, depth=101
+Checking. states=470163290, unique=23061226, depth=101
+Checking. states=471766260, unique=23138942, depth=101
+Checking. states=473280821, unique=23212960, depth=101
+Checking. states=474049653, unique=23249754, depth=101
+Checking. states=475290746, unique=23308685, depth=101
+Checking. states=476694094, unique=23374528, depth=101
+Checking. states=478121180, unique=23441671, depth=101
+Checking. states=479655505, unique=23515536, depth=101
+Checking. states=481201034, unique=23588823, depth=101
+Checking. states=482789772, unique=23663863, depth=101
+Checking. states=484364450, unique=23735505, depth=101
+Checking. states=485953972, unique=23811980, depth=101
+Checking. states=487522984, unique=23886226, depth=101
+Checking. states=489162023, unique=23960459, depth=101
+Checking. states=490730009, unique=24032898, depth=101
+Checking. states=492334248, unique=24109878, depth=101
+Checking. states=493922202, unique=24186199, depth=101
+Checking. states=495607777, unique=24268192, depth=101
+Checking. states=497229741, unique=24344835, depth=101
+Checking. states=498795219, unique=24419211, depth=101
+Checking. states=500369468, unique=24495022, depth=101
+Checking. states=501940596, unique=24569969, depth=101
+Checking. states=503519656, unique=24643912, depth=101
+Checking. states=505073445, unique=24717670, depth=101
+Checking. states=506650758, unique=24793244, depth=101
+Checking. states=508036765, unique=24858676, depth=101
+Checking. states=509456120, unique=24924771, depth=101
+Checking. states=510972401, unique=24995024, depth=101
+Checking. states=512555700, unique=25067879, depth=101
+Checking. states=514152834, unique=25140659, depth=101
+Checking. states=515745083, unique=25211891, depth=101
+Checking. states=517295389, unique=25281194, depth=101
+Checking. states=518886137, unique=25357040, depth=101
+Checking. states=519690066, unique=25395214, depth=101
+Checking. states=520090856, unique=25413909, depth=101
+Checking. states=521129282, unique=25462073, depth=101
+Checking. states=522270532, unique=25514647, depth=101
+Checking. states=523440531, unique=25568057, depth=101
+Checking. states=524459088, unique=25613857, depth=101
+Checking. states=525615862, unique=25668182, depth=101
+Checking. states=526691112, unique=25718207, depth=101
+Checking. states=527835185, unique=25770945, depth=101
+Checking. states=528991518, unique=25824362, depth=101
+Checking. states=529536807, unique=25849335, depth=101
+Checking. states=530010000, unique=25870465, depth=101
+Checking. states=531099167, unique=25919514, depth=101
+Checking. states=532327744, unique=25975978, depth=101
+Checking. states=533567331, unique=26032449, depth=101
+Checking. states=534824529, unique=26090514, depth=101
+Checking. states=536054899, unique=26147319, depth=101
+Checking. states=537266907, unique=26203427, depth=101
+Checking. states=538451266, unique=26258303, depth=101
+Checking. states=539618121, unique=26312322, depth=101
+Checking. states=540758019, unique=26364544, depth=101
+Checking. states=541897855, unique=26415864, depth=101
+Checking. states=543060911, unique=26468838, depth=101
+Checking. states=544201797, unique=26518966, depth=101
+Checking. states=545351465, unique=26570287, depth=101
+Checking. states=546520516, unique=26622762, depth=101
+Checking. states=547635558, unique=26674127, depth=101
+Checking. states=548416763, unique=26710145, depth=101
+Checking. states=549339187, unique=26752873, depth=101
+Checking. states=550204960, unique=26792199, depth=101
+Checking. states=551308726, unique=26841557, depth=101
+Checking. states=552382365, unique=26889998, depth=101
+Checking. states=553481426, unique=26938913, depth=101
+Checking. states=554652520, unique=26991176, depth=101
+Checking. states=555807977, unique=27041354, depth=101
+Checking. states=556919677, unique=27088299, depth=101
+Checking. states=557900778, unique=27139838, depth=101
+Checking. states=558679820, unique=27178457, depth=101
+Checking. states=559721037, unique=27232357, depth=101
+Checking. states=560654408, unique=27280166, depth=101
+Checking. states=561607722, unique=27327227, depth=101
