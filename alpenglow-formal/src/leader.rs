@@ -1,288 +1,390 @@
-//! Leader rotation and window management for Alpenglow consensus.
-//! This module simulates how the system handles leader failures and manages
-//! the BadWindow state to maintain safety during periods of liveness issues.
+//! Formal verification model for leader rotation and window management in Alpenglow consensus.
+//! This module provides a Stateright-based formal model for verifying leader selection,
+//! window management, and BadWindow flag handling.
 
-use std::collections::HashMap;
-use std::thread;
-use std::time::Duration;
+use stateright::{Model, Property, Checker};
+use std::collections::{BTreeMap, BTreeSet};
 
-// --- Configuration ---
-const LEADER_WINDOW_SIZE: u64 = 10; // A smaller window for a quicker simulation
+// --- Formal Model Configuration ---
+const LEADER_WINDOW_SIZE: u64 = 5; // Formal verification limit
+const MAX_SLOTS: u64 = 10; // Formal verification limit
+const MAX_VALIDATORS: usize = 5; // Formal verification limit
 
-/// Simulates a validator's perspective on leader rotation and window management.
-#[derive(Debug)]
-pub struct Validator {
-    pub id: String,
-    #[allow(dead_code)]
-    pub stake: u64,
-    current_slot: u64,
+// Type aliases for clarity
+type Slot = u64;
+type ActorId = usize;
+type Stake = u64;
+
+/// Represents different types of messages in the leader system
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LeaderMessage {
+    /// Leader selection for a slot
+    LeaderSelection {
+        slot: Slot,
+        leader: ActorId,
+        stake: Stake,
+    },
+    /// Skip certificate indicating leader failure
+    SkipCertificate {
+        slot: Slot,
+        failed_leader: ActorId,
+    },
+    /// BadWindow flag update
+    BadWindowUpdate {
+        slot: Slot,
+        validator: ActorId,
+        bad_window: bool,
+    },
+}
+
+/// Represents messages in transit
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct MessageInTransit {
+    dst: ActorId,
+    msg: LeaderMessage,
+}
+
+/// Actions that can be taken in the leader model
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LeaderAction {
+    /// Select a leader for a slot
+    SelectLeader {
+        slot: Slot,
+        leader: ActorId,
+    },
+    /// Deliver a message to its destination
+    DeliverMessage { msg: MessageInTransit },
+    /// Trigger a leader failure
+    TriggerLeaderFailure {
+        slot: Slot,
+        leader: ActorId,
+    },
+    /// Advance to the next slot
+    AdvanceSlot,
+}
+
+/// State of a validator in the leader model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ValidatorState {
+    /// Current slot
+    current_slot: Slot,
+    /// BadWindow flag state
     bad_window: bool,
-    bad_window_triggered_at_slot: Option<u64>,
+    /// Slot when BadWindow was triggered
+    bad_window_triggered_at: Option<Slot>,
+    /// Known leaders: slot -> leader
+    known_leaders: BTreeMap<Slot, ActorId>,
+    /// Known skip certificates: slot -> failed leader
+    skip_certificates: BTreeMap<Slot, ActorId>,
+    /// Stake distribution
+    stake: Stake,
 }
 
-impl Validator {
-    pub fn new(id: String, stake: u64) -> Self {
+/// Main state of the leader formal model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct LeaderState {
+    /// Network messages in transit
+    network: BTreeSet<MessageInTransit>,
+    /// Per-validator states
+    validators: Vec<ValidatorState>,
+    /// Global current slot
+    current_slot: Slot,
+    /// Leader assignments: slot -> leader
+    leader_assignments: BTreeMap<Slot, ActorId>,
+    /// Leader failures: slot -> failed leader
+    leader_failures: BTreeMap<Slot, ActorId>,
+    /// Stake distribution: validator -> stake
+    stake_distribution: BTreeMap<ActorId, Stake>,
+}
+
+/// Formal model for leader rotation and window management
+#[derive(Clone)]
+pub struct LeaderModel {
+    /// Number of validators
+    pub validator_count: usize,
+    /// Maximum slots to explore
+    pub max_slot: Slot,
+}
+
+impl LeaderState {
+    fn new(validator_count: usize) -> Self {
+        let mut stake_distribution = BTreeMap::new();
+        let stake_per_validator = 1000 / validator_count as u64;
+        
+        for i in 0..validator_count {
+            stake_distribution.insert(i, stake_per_validator);
+        }
+
         Self {
-            id,
-            stake,
+            network: BTreeSet::new(),
+            validators: (0..validator_count).map(|_i| ValidatorState {
+                current_slot: 0,
+                bad_window: false,
+                bad_window_triggered_at: None,
+                known_leaders: BTreeMap::new(),
+                skip_certificates: BTreeMap::new(),
+                stake: stake_per_validator,
+            }).collect(),
             current_slot: 0,
-            bad_window: false,
-            bad_window_triggered_at_slot: None,
+            leader_assignments: BTreeMap::new(),
+            leader_failures: BTreeMap::new(),
+            stake_distribution,
         }
     }
 
-    /// Advances the validator's internal clock.
-    pub fn advance_to_slot(&mut self, slot: u64) {
-        self.current_slot = slot;
+    /// Get leader for a slot using stake-weighted selection
+    fn get_leader_for_slot(&self, slot: Slot) -> ActorId {
+        let total_stake: Stake = self.stake_distribution.values().sum();
+        let slot_seed = (slot * 1234567891) % total_stake;
         
-        // Check if the reason for the bad window has passed
-        if let Some(triggered_slot) = self.bad_window_triggered_at_slot {
-            if self.bad_window && self.current_slot >= triggered_slot + LEADER_WINDOW_SIZE {
-                println!(
-                    "✅ Validator {}: Slot {}. The failure at slot {} is now outside the window. Clearing BadWindow flag.",
-                    self.id, self.current_slot, triggered_slot
-                );
-                self.bad_window = false;
-                self.bad_window_triggered_at_slot = None;
+        let mut cumulative_stake = 0;
+        for (validator_id, stake) in &self.stake_distribution {
+            cumulative_stake += stake;
+            if slot_seed < cumulative_stake {
+                return *validator_id;
+            }
+        }
+        
+        // Fallback to last validator
+        *self.stake_distribution.keys().last().unwrap()
+    }
+
+    /// Check if a slot is within the leader window
+    fn is_within_window(&self, slot: Slot, current_slot: Slot) -> bool {
+        current_slot <= slot && slot < current_slot + LEADER_WINDOW_SIZE
+    }
+
+    /// Update BadWindow flags based on skip certificates
+    fn update_badwindow_flags(&mut self) {
+        for validator in &mut self.validators {
+            let current_slot = validator.current_slot;
+            // Check if any skip certificate is within the current window
+            let has_skip_in_window = validator.skip_certificates.iter()
+                .any(|(slot, _)| current_slot <= *slot && *slot < current_slot + LEADER_WINDOW_SIZE);
+            
+            if has_skip_in_window && !validator.bad_window {
+                validator.bad_window = true;
+                validator.bad_window_triggered_at = Some(current_slot);
+            } else if !has_skip_in_window && validator.bad_window {
+                // Clear BadWindow if no skip certificates in window
+                validator.bad_window = false;
+                validator.bad_window_triggered_at = None;
             }
         }
     }
+}
 
-    /// Processes a liveness failure (SkipCertificate).
-    pub fn process_skip_certificate(&mut self, failed_slot: u64) {
-        println!(" Validator {}: Observed SkipCertificate for slot {}.", self.id, failed_slot);
-        
-        // This is the core window logic
-        let window_start = self.current_slot;
-        let window_end = self.current_slot + LEADER_WINDOW_SIZE;
-        
-        if window_start <= failed_slot && failed_slot < window_end {
-            if !self.bad_window {
-                println!(
-                    "🚦 Validator {}: The failure is INSIDE the current window ({}-{}). Setting BadWindow flag to TRUE.",
-                    self.id, window_start, window_end - 1
-                );
-                self.bad_window = true;
-                self.bad_window_triggered_at_slot = Some(failed_slot);
+impl Model for LeaderModel {
+    type State = LeaderState;
+    type Action = LeaderAction;
+
+    fn init_states(&self) -> Vec<Self::State> {
+        vec![LeaderState::new(self.validator_count)]
+    }
+
+    fn actions(&self, state: &Self::State, actions: &mut Vec<Self::Action>) {
+        // 1. Deliver any message in the network
+        for msg in &state.network {
+            actions.push(LeaderAction::DeliverMessage { msg: msg.clone() });
+        }
+
+        // 2. Select leaders for current and future slots
+        for slot in state.current_slot..=self.max_slot {
+            if !state.leader_assignments.contains_key(&slot) {
+                let leader = state.get_leader_for_slot(slot);
+                actions.push(LeaderAction::SelectLeader { slot, leader });
             }
+        }
+
+        // 3. Trigger leader failures for any slot
+        for slot in 1..=self.max_slot {
+            if let Some(leader) = state.leader_assignments.get(&slot) {
+                actions.push(LeaderAction::TriggerLeaderFailure { slot, leader: *leader });
+            }
+        }
+
+        // 4. Advance to next slot
+        if state.current_slot < self.max_slot {
+            actions.push(LeaderAction::AdvanceSlot);
+        }
+    }
+
+    fn next_state(&self, last_state: &Self::State, action: Self::Action) -> Option<Self::State> {
+        let mut next_state = last_state.clone();
+        let mut validators = last_state.validators.clone();
+
+        match action {
+            LeaderAction::SelectLeader { slot, leader } => {
+                next_state.leader_assignments.insert(slot, leader);
+
+                // Broadcast leader selection to all validators
+                if let Some(stake) = next_state.stake_distribution.get(&leader) {
+                    for dst in 0..self.validator_count {
+                        next_state.network.insert(MessageInTransit {
+                            dst,
+                            msg: LeaderMessage::LeaderSelection {
+                                slot,
+                                leader,
+                                stake: *stake,
+                            },
+                        });
+                    }
+                }
+            }
+            LeaderAction::DeliverMessage { msg } => {
+                let recipient_id = msg.dst;
+                let mut validator_state = validators[recipient_id].clone();
+
+                // Remove message from network
+                if !next_state.network.remove(&msg) { return None; }
+
+                match msg.msg {
+                    LeaderMessage::LeaderSelection { slot, leader, stake: _ } => {
+                        validator_state.known_leaders.insert(slot, leader);
+                    }
+                    LeaderMessage::SkipCertificate { slot, failed_leader } => {
+                        validator_state.skip_certificates.insert(slot, failed_leader);
+                    }
+                    LeaderMessage::BadWindowUpdate { slot: _, validator: _, bad_window } => {
+                        validator_state.bad_window = bad_window;
+                    }
+                }
+                validators[recipient_id] = validator_state;
+            }
+            LeaderAction::TriggerLeaderFailure { slot, leader } => {
+                next_state.leader_failures.insert(slot, leader);
+
+                // Broadcast skip certificate to all validators
+                for i in 0..self.validator_count {
+                    next_state.network.insert(MessageInTransit {
+                        dst: i,
+                        msg: LeaderMessage::SkipCertificate { slot, failed_leader: leader },
+                    });
+                }
+            }
+            LeaderAction::AdvanceSlot => {
+                next_state.current_slot += 1;
+                for validator_state in &mut validators {
+                    validator_state.current_slot = next_state.current_slot;
+                }
+                // Update BadWindow flags when advancing slots
+                next_state.update_badwindow_flags();
+            }
+        }
+
+        next_state.validators = validators;
+        Some(next_state)
+    }
+
+    /// Properties to verify in the leader model
+    fn properties(&self) -> Vec<Property<Self>> {
+        vec![
+            // Property 1: Leader uniqueness per slot
+            Property::<Self>::always("leader_uniqueness", |_, state| {
+                // Each slot has at most one leader
+                state.leader_assignments.len() <= state.current_slot as usize + 1
+            }),
+            
+            // Property 2: BadWindow consistency
+            Property::<Self>::always("badwindow_consistency", |_, state| {
+                for validator in &state.validators {
+                    if validator.bad_window {
+                        // If BadWindow is set, there must be a skip certificate in the window
+                        let has_skip_in_window = validator.skip_certificates.iter()
+                            .any(|(slot, _)| state.is_within_window(*slot, validator.current_slot));
+                        if !has_skip_in_window {
+                            return false;
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 3: Stake-weighted leader selection
+            Property::<Self>::always("stake_weighted_selection", |_, state| {
+                // Leaders should be selected based on stake distribution
+                for (slot, leader) in &state.leader_assignments {
+                    if *slot <= state.current_slot {
+                        // Verify the leader was selected using stake-weighted method
+                        let expected_leader = state.get_leader_for_slot(*slot);
+                        if expected_leader != *leader {
+                            return false;
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 4: Window management correctness
+            Property::<Self>::always("window_management", |_, state| {
+                for validator in &state.validators {
+                    // BadWindow should be cleared when skip certificates move out of window
+                    for (skip_slot, _) in &validator.skip_certificates {
+                        if !state.is_within_window(*skip_slot, validator.current_slot) {
+                            // Skip certificate is outside window, BadWindow should be cleared
+                            if validator.bad_window {
+                                // Check if there are other skip certificates in window
+                                let has_other_skip_in_window = validator.skip_certificates.iter()
+                                    .any(|(other_slot, _)| *other_slot != *skip_slot && 
+                                         state.is_within_window(*other_slot, validator.current_slot));
+                                if !has_other_skip_in_window {
+                                    return false; // BadWindow should be cleared
+                                }
+                            }
+                        }
+                    }
+                }
+                true
+            }),
+        ]
+    }
+}
+
+/// Run formal verification of leader rotation
+pub fn run_formal_verification() {
+    println!("=== Leader Rotation Formal Verification ===");
+    
+    let model = LeaderModel {
+        validator_count: 3, // Small for formal verification
+        max_slot: 5,
+    };
+
+    println!("Model checking leader rotation with {} validators, {} slots", 
+             model.validator_count, model.max_slot);
+    
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs()
+        .report(&mut stateright::report::WriteReporter::new(&mut std::io::stdout()));
+    
+    // Check verification results
+    if result.discoveries().is_empty() {
+        println!("✅ All leader rotation properties verified successfully");
         } else {
-            println!(" Validator {}: The failure is OUTSIDE the current window. Ignoring.", self.id);
-        }
-    }
-
-    /// Checks if the validator is allowed to use fast-path mechanisms.
-    pub fn can_use_optimistic_path(&self) -> bool {
-        !self.bad_window
-    }
-
-    #[allow(dead_code)]
-    pub fn is_bad_window_active(&self) -> bool {
-        self.bad_window
-    }
-}
-
-/// A simple, deterministic, stake-weighted leader selection function.
-/// In reality, this uses a VRF, but this simulates the stake-weighted property.
-pub fn get_leader_for_slot(slot: u64, stakes: &HashMap<String, u64>) -> String {
-    let total_stake: u64 = stakes.values().sum();
-    // This creates a deterministic "random" number for the slot
-    let slot_seed = (slot * 1234567891) % total_stake;
-    
-    let mut cumulative_stake = 0;
-    for (validator_id, stake) in stakes {
-        cumulative_stake += stake;
-        if slot_seed < cumulative_stake {
-            return validator_id.clone();
-        }
-    }
-    
-    // Fallback to the last validator
-    stakes.keys().last().unwrap().clone()
-}
-
-/// Runs the leader window simulation.
-pub fn run_simulation() {
-    println!("--- Alpenglow Leader Window Simulation ---");
-    
-    let stakes: HashMap<String, u64> = [
-        ("Val-A".to_string(), 400),
-        ("Val-B".to_string(), 300),
-        ("Val-C".to_string(), 200),
-        ("Val-D".to_string(), 100),
-    ].iter().cloned().collect();
-    
-    let mut validators: Vec<Validator> = stakes
-        .iter()
-        .map(|(id, stake)| Validator::new(id.clone(), *stake))
-        .collect();
-    
-    let observer = &mut validators[0]; // We'll watch from this validator's perspective
-    
-    // Simulate a leader failure at a specific slot
-    let slot_with_failure = 15;
-    
-    println!(
-        "Leader window size is {} slots. A leader will fail at slot {}.\n",
-        LEADER_WINDOW_SIZE, slot_with_failure
-    );
-
-    // Run the simulation slot by slot
-    for slot in 0..40 {
-        let leader = get_leader_for_slot(slot, &stakes);
-        println!("--- Slot {} | Leader: {} ---", slot, leader);
-        
-        observer.advance_to_slot(slot);
-        
-        // A liveness failure happens!
-        if slot == slot_with_failure {
-            println!("🔴 LIVENESS FAILURE: Leader {} for slot {} is offline!", leader, slot);
-            observer.process_skip_certificate(slot_with_failure);
-        }
-        
-        // Check the validator's state
-        if observer.can_use_optimistic_path() {
-            println!("  -> State: Normal. Optimistic paths are ENABLED.");
-        } else {
-            println!("  -> State: BadWindow Active! Optimistic paths are DISABLED.");
-        }
-        
-        thread::sleep(Duration::from_millis(100));
-    }
-    
-    println!("\n--- Simulation Complete ---");
-    println!("The simulation shows how a failure inside the leader window triggers the BadWindow state.");
-    println!("This state persists until the window has slid far enough past the failure, allowing the system to automatically recover to its high-performance mode.");
-}
-
-/// Test window management functionality
-pub fn test_window_management(window_size: u64) {
-    println!("--- Testing Window Management with size {} ---", window_size);
-    
-    let stakes: HashMap<String, u64> = [
-        ("Val-A".to_string(), 400),
-        ("Val-B".to_string(), 300),
-        ("Val-C".to_string(), 200),
-        ("Val-D".to_string(), 100),
-    ].iter().cloned().collect();
-    
-    let mut validators: Vec<Validator> = stakes
-        .iter()
-        .map(|(id, stake)| Validator::new(id.clone(), *stake))
-        .collect();
-    
-    let observer = &mut validators[0];
-    
-    // Test window management
-    for slot in 0..window_size + 5 {
-        observer.advance_to_slot(slot);
-        let leader = get_leader_for_slot(slot, &stakes);
-        
-        if slot < window_size {
-            println!("Slot {}: Leader {} - Window active", slot, leader);
-        } else {
-            println!("Slot {}: Leader {} - Window expired", slot, leader);
+        println!("❌ Leader rotation verification found counterexamples");
+        for (property_name, _path) in result.discoveries() {
+            println!("  - {}", property_name);
         }
     }
 }
 
-/// Test BadWindow flag management
-pub fn test_badwindow_management() {
-    println!("--- Testing BadWindow Flag Management ---");
+/// Test leader model with different configurations
+pub fn test_leader_model(validators: usize, slots: u64) {
+    println!("Testing leader model with {} validators, {} slots", validators, slots);
     
-    let mut validator = Validator::new("TestVal".to_string(), 100);
-    
-    // Test BadWindow triggering
-    validator.advance_to_slot(10);
-    validator.process_skip_certificate(12); // Failure inside window
-    assert!(validator.is_bad_window_active());
-    
-    // Test BadWindow clearing
-    validator.advance_to_slot(25); // Move past window
-    assert!(!validator.is_bad_window_active());
-    
-    println!("BadWindow management test completed successfully");
-}
+    let model = LeaderModel {
+        validator_count: validators,
+        max_slot: slots,
+    };
 
-/// Test failure handling
-pub fn test_failure_handling(failure_rate: u32) {
-    println!("--- Testing Failure Handling with {}% failure rate ---", failure_rate);
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs();
     
-    let stakes: HashMap<String, u64> = [
-        ("Val-A".to_string(), 400),
-        ("Val-B".to_string(), 300),
-        ("Val-C".to_string(), 200),
-        ("Val-D".to_string(), 100),
-    ].iter().cloned().collect();
-    
-    let mut validators: Vec<Validator> = stakes
-        .iter()
-        .map(|(id, stake)| Validator::new(id.clone(), *stake))
-        .collect();
-    
-    let observer = &mut validators[0];
-    
-    // Simulate failures
-    for slot in 0..20 {
-        observer.advance_to_slot(slot);
-        let leader = get_leader_for_slot(slot, &stakes);
-        
-        // Simulate failure based on rate
-        if (slot as u32) % 100 < failure_rate {
-            println!("Slot {}: Leader {} FAILED", slot, leader);
-            observer.process_skip_certificate(slot);
-        } else {
-            println!("Slot {}: Leader {} SUCCESS", slot, leader);
-        }
-    }
-}
-
-/// Test stake-weighted selection
-pub fn test_stake_weighted_selection() {
-    println!("--- Testing Stake-Weighted Selection ---");
-    
-    let stakes: HashMap<String, u64> = [
-        ("Val-A".to_string(), 400),
-        ("Val-B".to_string(), 300),
-        ("Val-C".to_string(), 200),
-        ("Val-D".to_string(), 100),
-    ].iter().cloned().collect();
-    
-    // Test multiple slots to verify distribution
-    let mut leader_counts: HashMap<String, u32> = HashMap::new();
-    
-    for slot in 0..100 {
-        let leader = get_leader_for_slot(slot, &stakes);
-        *leader_counts.entry(leader).or_insert(0) += 1;
-    }
-    
-    println!("Leader selection distribution over 100 slots:");
-    for (leader, count) in &leader_counts {
-        println!("  {}: {} times", leader, count);
-    }
-}
-
-/// Test window sliding
-pub fn test_window_sliding() {
-    println!("--- Testing Window Sliding ---");
-    
-    let mut validator = Validator::new("TestVal".to_string(), 100);
-    
-    // Test window sliding behavior
-    for slot in 0..30 {
-        validator.advance_to_slot(slot);
-        
-        // Trigger failure at slot 10
-        if slot == 10 {
-            validator.process_skip_certificate(10);
-        }
-        
-        // Check if BadWindow is active
-        if validator.is_bad_window_active() {
-            println!("Slot {}: BadWindow ACTIVE", slot);
-        } else {
-            println!("Slot {}: BadWindow CLEAR", slot);
-        }
-    }
+    println!("States explored: {}", result.state_count());
+    println!("Properties verified: {}", result.discoveries().is_empty());
 }
 
 #[cfg(test)]
@@ -290,32 +392,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_validator_creation() {
-        let validator = Validator::new("TestVal".to_string(), 100);
-        assert_eq!(validator.id, "TestVal");
-        assert_eq!(validator.stake, 100);
-        assert!(!validator.bad_window);
+    fn test_leader_state_creation() {
+        let state = LeaderState::new(3);
+        assert_eq!(state.validators.len(), 3);
+        assert_eq!(state.current_slot, 0);
+        assert!(state.network.is_empty());
     }
 
     #[test]
     fn test_leader_selection() {
-        let stakes: HashMap<String, u64> = [
-            ("Val-A".to_string(), 400),
-            ("Val-B".to_string(), 300),
-        ].iter().cloned().collect();
-        
-        let leader = get_leader_for_slot(0, &stakes);
-        assert!(stakes.contains_key(&leader));
+        let state = LeaderState::new(3);
+        let leader = state.get_leader_for_slot(1);
+        assert!(leader < 3);
     }
 
     #[test]
-    fn test_bad_window_logic() {
-        let mut validator = Validator::new("TestVal".to_string(), 100);
-        validator.advance_to_slot(10);
-        validator.process_skip_certificate(15); // Failure outside window
-        assert!(!validator.bad_window);
-        
-        validator.process_skip_certificate(12); // Failure inside window
-        assert!(validator.bad_window);
+    fn test_window_management() {
+        let state = LeaderState::new(3);
+        assert!(state.is_within_window(5, 5)); // Within window
+        assert!(!state.is_within_window(15, 5)); // Outside window
     }
 }

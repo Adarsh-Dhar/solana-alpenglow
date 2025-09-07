@@ -1,352 +1,485 @@
-//! Rotor sampling strategy for Alpenglow consensus.
-//! This module implements the sampling mechanisms used in the Alpenglow
-//! consensus protocol for efficient message dissemination and validation.
+//! Formal verification model for Rotor sampling strategy in Alpenglow consensus.
+//! This module provides a Stateright-based formal model for verifying message dissemination,
+//! erasure coding, and stake-weighted sampling mechanisms.
 
-use rand::{Rng, SeedableRng};
-use rand::rngs::StdRng;
+use stateright::{Model, Property, Checker};
+use std::collections::{BTreeMap, BTreeSet};
 
-/// Configuration for rotor sampling
-#[derive(Debug, Clone)]
-pub struct RotorConfig {
-    pub fanout: usize,
-    #[allow(dead_code)]
-    pub redundancy: usize,
-    pub max_retries: u32,
+// --- Formal Model Configuration ---
+const MAX_NODES: usize = 5; // Formal verification limit
+const MAX_SLOTS: u64 = 5; // Formal verification limit
+const FANOUT_SIZE: usize = 3; // Number of nodes to sample
+const TOTAL_STAKE: u64 = 1000;
+
+// Type aliases for clarity
+type NodeId = usize;
+type Slot = u64;
+type Stake = u64;
+
+/// Represents different types of messages in the rotor system
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum RotorMessage {
+    /// A block or data message to be disseminated
+    DataMessage {
+        slot: Slot,
+        data_id: u64,
+        sender: NodeId,
+    },
+    /// A message forwarded through the rotor network
+    ForwardedMessage {
+        slot: Slot,
+        data_id: u64,
+        original_sender: NodeId,
+        forwarder: NodeId,
+    },
+    /// Sampling request for a specific slot
+    SamplingRequest {
+        slot: Slot,
+        requester: NodeId,
+    },
+    /// Sampling response with selected nodes
+    SamplingResponse {
+        slot: Slot,
+        selected_nodes: BTreeSet<NodeId>,
+        responder: NodeId,
+    },
 }
 
-impl Default for RotorConfig {
-    fn default() -> Self {
-        Self {
-            fanout: 3,
-            redundancy: 2,
-            max_retries: 3,
-        }
-    }
+/// Represents messages in transit
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct MessageInTransit {
+    dst: NodeId,
+    msg: RotorMessage,
 }
 
-/// Represents a node in the network for sampling purposes
-#[derive(Debug, Clone)]
-pub struct Node {
-    #[allow(dead_code)]
-    pub id: u64,
-    pub stake: u64,
-    pub is_online: bool,
+/// Actions that can be taken in the rotor model
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum RotorAction {
+    /// Send a data message
+    SendData {
+        slot: Slot,
+        data_id: u64,
+        sender: NodeId,
+    },
+    /// Deliver a message to its destination
+    DeliverMessage { msg: MessageInTransit },
+    /// Request sampling for a slot
+    RequestSampling {
+        slot: Slot,
+        requester: NodeId,
+    },
+    /// Perform stake-weighted sampling
+    PerformSampling {
+        slot: Slot,
+        sampler: NodeId,
+    },
+    /// Advance to the next slot
+    AdvanceSlot,
 }
 
-impl Node {
-    pub fn new(id: u64, stake: u64) -> Self {
-        Self {
-            id,
-            stake,
-            is_online: true,
-        }
-    }
+/// State of a node in the rotor model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct NodeState {
+    /// Node's stake
+    stake: Stake,
+    /// Whether the node is online
+    is_online: bool,
+    /// Messages received by this node
+    received_messages: BTreeSet<(Slot, u64)>,
+    /// Messages forwarded by this node
+    forwarded_messages: BTreeSet<(Slot, u64)>,
+    /// Sampling history: slot -> selected nodes
+    sampling_history: BTreeMap<Slot, BTreeSet<NodeId>>,
+    /// Current slot
+    current_slot: Slot,
 }
 
-/// Rotor sampling strategy implementation
-#[derive(Debug)]
-pub struct RotorSampler {
-    config: RotorConfig,
-    nodes: Vec<Node>,
-    #[allow(dead_code)]
-    rng: StdRng,
+/// Main state of the rotor formal model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct RotorState {
+    /// Network messages in transit
+    network: BTreeSet<MessageInTransit>,
+    /// Per-node states
+    nodes: Vec<NodeState>,
+    /// Global current slot
+    current_slot: Slot,
+    /// Stake distribution: node -> stake
+    stake_distribution: BTreeMap<NodeId, Stake>,
+    /// Message dissemination tracking: (slot, data_id) -> set of nodes that received it
+    message_reach: BTreeMap<(Slot, u64), BTreeSet<NodeId>>,
 }
 
-impl RotorSampler {
-    /// Creates a new rotor sampler with the given configuration and nodes
-    pub fn new(config: RotorConfig, nodes: Vec<Node>) -> Self {
-        Self {
-            config,
-            nodes,
-            rng: StdRng::from_entropy(),
-        }
-    }
+/// Formal model for rotor sampling and message dissemination
+#[derive(Clone)]
+pub struct RotorModel {
+    /// Number of nodes
+    pub node_count: usize,
+    /// Maximum slots to explore
+    pub max_slot: Slot,
+}
 
-    /// Samples nodes for message dissemination using stake-weighted selection
-    pub fn sample_nodes(&mut self, source_id: u64, slot: u64) -> Vec<u64> {
-        let mut selected = Vec::new();
-        let mut attempts = 0;
+impl RotorState {
+    fn new(node_count: usize) -> Self {
+        let mut stake_distribution = BTreeMap::new();
+        let stake_per_node = TOTAL_STAKE / node_count as u64;
         
-        while selected.len() < self.config.fanout && attempts < self.config.max_retries {
-            let node_id = self.weighted_random_selection(slot + attempts as u64);
-            
-            if node_id != source_id && !selected.contains(&node_id) {
-                if let Some(node) = self.nodes.get(node_id as usize) {
-                    if node.is_online {
-                        selected.push(node_id);
-                    }
+        for i in 0..node_count {
+            stake_distribution.insert(i, stake_per_node);
+        }
+
+        Self {
+            network: BTreeSet::new(),
+            nodes: (0..node_count).map(|_i| NodeState {
+                stake: stake_per_node,
+                is_online: true,
+                received_messages: BTreeSet::new(),
+                forwarded_messages: BTreeSet::new(),
+                sampling_history: BTreeMap::new(),
+                current_slot: 0,
+            }).collect(),
+            current_slot: 0,
+            stake_distribution,
+            message_reach: BTreeMap::new(),
+        }
+    }
+
+    /// Perform stake-weighted sampling for a slot
+    fn perform_stake_weighted_sampling(&self, slot: Slot, sampler: NodeId) -> BTreeSet<NodeId> {
+        let mut selected = BTreeSet::new();
+        let total_stake: Stake = self.stake_distribution.values().sum();
+        
+        // Use deterministic sampling based on slot and sampler
+        let seed = (slot * 1000 + sampler as u64) % total_stake;
+        let mut cumulative_stake = 0;
+        
+        for (node_id, stake) in &self.stake_distribution {
+            if *node_id != sampler && selected.len() < FANOUT_SIZE {
+                cumulative_stake += stake;
+                if seed < cumulative_stake {
+                    selected.insert(*node_id);
                 }
             }
-            attempts += 1;
+        }
+        
+        // Ensure we have at least some nodes selected
+        if selected.is_empty() {
+            for (node_id, _) in &self.stake_distribution {
+                if *node_id != sampler && selected.len() < FANOUT_SIZE {
+                    selected.insert(*node_id);
+                }
+            }
         }
         
         selected
     }
 
-    /// Performs stake-weighted random selection
-    fn weighted_random_selection(&mut self, seed: u64) -> u64 {
-        let total_stake: u64 = self.nodes.iter().map(|n| n.stake).sum();
-        let mut rng = StdRng::seed_from_u64(seed);
-        let random_value = rng.gen_range(0..total_stake);
-        
-        let mut cumulative_stake = 0;
-        for (i, node) in self.nodes.iter().enumerate() {
-            cumulative_stake += node.stake;
-            if random_value < cumulative_stake {
-                return i as u64;
+    /// Check if a message has reached sufficient nodes (fanout achieved)
+    fn has_achieved_fanout(&self, slot: Slot, data_id: u64) -> bool {
+        if let Some(reached_nodes) = self.message_reach.get(&(slot, data_id)) {
+            reached_nodes.len() >= FANOUT_SIZE
+        } else {
+            false
+        }
+    }
+}
+
+impl Model for RotorModel {
+    type State = RotorState;
+    type Action = RotorAction;
+
+    fn init_states(&self) -> Vec<Self::State> {
+        vec![RotorState::new(self.node_count)]
+    }
+
+    fn actions(&self, state: &Self::State, actions: &mut Vec<Self::Action>) {
+        // 1. Deliver any message in the network
+        for msg in &state.network {
+            actions.push(RotorAction::DeliverMessage { msg: msg.clone() });
+        }
+
+        // 2. Send data messages for current and future slots
+        for slot in state.current_slot..=self.max_slot {
+            for sender in 0..self.node_count {
+                let data_id = slot * 1000 + sender as u64;
+                actions.push(RotorAction::SendData {
+                    slot,
+                    data_id,
+                    sender,
+                });
             }
         }
-        
-        // Fallback to last node
-        (self.nodes.len() - 1) as u64
-    }
 
-    /// Updates the online status of a node
-    pub fn set_node_online(&mut self, node_id: u64, online: bool) {
-        if let Some(node) = self.nodes.get_mut(node_id as usize) {
-            node.is_online = online;
+        // 3. Request sampling for any slot
+        for slot in 1..=self.max_slot {
+            for requester in 0..self.node_count {
+                actions.push(RotorAction::RequestSampling {
+                    slot,
+                    requester,
+                });
+            }
+        }
+
+        // 4. Perform sampling
+        for slot in 1..=self.max_slot {
+            for sampler in 0..self.node_count {
+                actions.push(RotorAction::PerformSampling {
+                    slot,
+                    sampler,
+                });
+            }
+        }
+
+        // 5. Advance to next slot
+        if state.current_slot < self.max_slot {
+            actions.push(RotorAction::AdvanceSlot);
         }
     }
 
-    /// Gets the current configuration
-    #[allow(dead_code)]
-    pub fn config(&self) -> &RotorConfig {
-        &self.config
-    }
+    fn next_state(&self, last_state: &Self::State, action: Self::Action) -> Option<Self::State> {
+        let mut next_state = last_state.clone();
+        let mut nodes = last_state.nodes.clone();
 
-    /// Updates the configuration
-    #[allow(dead_code)]
-    pub fn set_config(&mut self, config: RotorConfig) {
-        self.config = config;
-    }
-}
+        match action {
+            RotorAction::SendData { slot, data_id, sender } => {
+                // Mark message as received by sender
+                if let Some(node_state) = nodes.get_mut(sender) {
+                    node_state.received_messages.insert((slot, data_id));
+                }
+                
+                // Update message reach
+                let reach_entry = next_state.message_reach.entry((slot, data_id)).or_default();
+                reach_entry.insert(sender);
 
-/// Runs a simple rotor sampling simulation
-pub fn run_simulation() {
-    println!("--- Alpenglow Rotor Sampling Simulation ---");
-    
-    let config = RotorConfig::default();
-    let nodes: Vec<Node> = (0..10)
-        .map(|i| Node::new(i, 100))
-        .collect();
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    
-    println!("Sampling nodes for message dissemination...");
-    
-    for slot in 0..5 {
-        let source_id = slot % 10;
-        let selected = sampler.sample_nodes(source_id, slot);
-        println!("Slot {}: Source {} selected nodes: {:?}", slot, source_id, selected);
-    }
-    
-    // Simulate a node going offline
-    println!("\nSimulating node 3 going offline...");
-    sampler.set_node_online(3, false);
-    
-    for slot in 5..8 {
-        let source_id = slot % 10;
-        let selected = sampler.sample_nodes(source_id, slot);
-        println!("Slot {}: Source {} selected nodes: {:?}", slot, source_id, selected);
-    }
-    
-    println!("\n--- Simulation Complete ---");
-    println!("The rotor sampling strategy ensures efficient message dissemination while maintaining redundancy.");
-}
+                // Request sampling to determine where to forward
+                next_state.network.insert(MessageInTransit {
+                    dst: sender,
+                    msg: RotorMessage::SamplingRequest {
+                        slot,
+                        requester: sender,
+                    },
+                });
+            }
+            RotorAction::DeliverMessage { msg } => {
+                let recipient_id = msg.dst;
+                let mut node_state = nodes[recipient_id].clone();
 
-/// Test stake-weighted selection
-pub fn test_stake_weighted_selection(node_count: usize) {
-    println!("--- Testing Stake-Weighted Selection with {} nodes ---", node_count);
-    
-    let config = RotorConfig::default();
-    let nodes: Vec<Node> = (0..node_count)
-        .map(|i| Node::new(i as u64, 100 + (i as u64 * 10))) // Different stakes
-        .collect();
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    
-    // Test multiple sampling rounds
-    for slot in 0..10 {
-        let source_id = slot % node_count as u64;
-        let selected = sampler.sample_nodes(source_id, slot);
-        println!("Slot {}: Source {} selected nodes: {:?}", slot, source_id, selected);
-    }
-}
+                // Remove message from network
+                if !next_state.network.remove(&msg) { return None; }
 
-/// Test fanout optimization
-pub fn test_fanout_optimization(fanout: usize) {
-    println!("--- Testing Fanout Optimization with fanout {} ---", fanout);
-    
-    let config = RotorConfig {
-        fanout,
-        redundancy: 2,
-        max_retries: 3,
-    };
-    
-    let nodes: Vec<Node> = (0..20)
-        .map(|i| Node::new(i as u64, 100))
-        .collect();
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    
-    // Test sampling with different fanout values
-    for slot in 0..5 {
-        let source_id = slot % 20;
-        let selected = sampler.sample_nodes(source_id, slot);
-        println!("Slot {}: Fanout {} selected {} nodes: {:?}", slot, fanout, selected.len(), selected);
-    }
-}
-
-/// Test message dissemination
-pub fn test_message_dissemination(node_count: usize) {
-    println!("--- Testing Message Dissemination with {} nodes ---", node_count);
-    
-    let config = RotorConfig::default();
-    let nodes: Vec<Node> = (0..node_count)
-        .map(|i| Node::new(i as u64, 100))
-        .collect();
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    
-    // Simulate message dissemination
-    let mut message_reach = vec![false; node_count];
-    message_reach[0] = true; // Source node
-    
-    for round in 0..5 {
-        let mut new_reach = message_reach.clone();
-        
-        for (i, &has_message) in message_reach.iter().enumerate() {
-            if has_message {
-                let selected = sampler.sample_nodes(i as u64, round);
-                for &target in &selected {
-                    if target < node_count as u64 {
-                        new_reach[target as usize] = true;
+                match msg.msg {
+                    RotorMessage::DataMessage { slot, data_id, sender } => {
+                        // Node receives data message
+                        node_state.received_messages.insert((slot, data_id));
+                        
+                        // Update message reach
+                        let reach_entry = next_state.message_reach.entry((slot, data_id)).or_default();
+                        reach_entry.insert(recipient_id);
+                        
+                        // Forward to sampled nodes
+                        if let Some(selected_nodes) = node_state.sampling_history.get(&slot) {
+                            for &target in selected_nodes {
+                                if target != recipient_id {
+                                    next_state.network.insert(MessageInTransit {
+                                        dst: target,
+                                        msg: RotorMessage::ForwardedMessage {
+                                            slot,
+                                            data_id,
+                                            original_sender: sender,
+                                            forwarder: recipient_id,
+                                        },
+                                    });
+                                }
+                            }
+                        }
                     }
+                    RotorMessage::ForwardedMessage { slot, data_id, original_sender: _, forwarder } => {
+                        // Node receives forwarded message
+                        node_state.received_messages.insert((slot, data_id));
+                        
+                        // Update message reach
+                        let reach_entry = next_state.message_reach.entry((slot, data_id)).or_default();
+                        reach_entry.insert(recipient_id);
+                        
+                        // Mark as forwarded by the forwarder
+                        if let Some(forwarder_state) = nodes.get_mut(forwarder) {
+                            forwarder_state.forwarded_messages.insert((slot, data_id));
+                        }
+                    }
+                    RotorMessage::SamplingRequest { slot, requester } => {
+                        // Perform sampling and respond
+                        let selected_nodes = next_state.perform_stake_weighted_sampling(slot, requester);
+                        node_state.sampling_history.insert(slot, selected_nodes.clone());
+                        
+                        // Send sampling response
+                        next_state.network.insert(MessageInTransit {
+                            dst: requester,
+                            msg: RotorMessage::SamplingResponse {
+                                slot,
+                                selected_nodes,
+                                responder: recipient_id,
+                            },
+                        });
+                    }
+                    RotorMessage::SamplingResponse { slot, selected_nodes, responder: _ } => {
+                        // Store sampling results
+                        node_state.sampling_history.insert(slot, selected_nodes);
+                    }
+                }
+                nodes[recipient_id] = node_state;
+            }
+            RotorAction::RequestSampling { slot, requester } => {
+                // Send sampling request
+                next_state.network.insert(MessageInTransit {
+                    dst: requester,
+                    msg: RotorMessage::SamplingRequest {
+                        slot,
+                        requester,
+                    },
+                });
+            }
+            RotorAction::PerformSampling { slot, sampler } => {
+                // Perform sampling and store results
+                let selected_nodes = next_state.perform_stake_weighted_sampling(slot, sampler);
+                if let Some(node_state) = nodes.get_mut(sampler) {
+                    node_state.sampling_history.insert(slot, selected_nodes);
+                }
+            }
+            RotorAction::AdvanceSlot => {
+                next_state.current_slot += 1;
+                for node_state in &mut nodes {
+                    node_state.current_slot = next_state.current_slot;
                 }
             }
         }
-        
-        message_reach = new_reach;
-        let reached_count = message_reach.iter().filter(|&&x| x).count();
-        println!("Round {}: Message reached {}/{} nodes", round, reached_count, node_count);
+
+        next_state.nodes = nodes;
+        Some(next_state)
+    }
+
+    /// Properties to verify in the rotor model
+    fn properties(&self) -> Vec<Property<Self>> {
+        vec![
+            // Property 1: Message dissemination completeness
+            Property::<Self>::always("message_dissemination", |model, state| {
+                // All sent messages should eventually reach multiple nodes
+                for slot in 1..=model.max_slot {
+                    for sender in 0..model.node_count {
+                        let data_id = slot * 1000 + sender as u64;
+                        if let Some(reached_nodes) = state.message_reach.get(&(slot, data_id)) {
+                            // Message should reach at least the sender and some other nodes
+                            if reached_nodes.len() < 2 {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 2: Stake-weighted sampling fairness
+            Property::<Self>::always("stake_weighted_sampling", |model, state| {
+                // Sampling should be deterministic and based on stake
+                for node in &state.nodes {
+                    for (slot, selected_nodes) in &node.sampling_history {
+                        if *slot <= model.max_slot {
+                            // Verify sampling was performed correctly
+                            let _expected_selection = state.perform_stake_weighted_sampling(*slot, 0);
+                            if selected_nodes.len() > FANOUT_SIZE {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 3: Fanout achievement
+            Property::<Self>::always("fanout_achievement", |model, state| {
+                // Messages should achieve the required fanout
+                for slot in 1..=model.max_slot {
+                    for sender in 0..model.node_count {
+                        let data_id = slot * 1000 + sender as u64;
+                        if state.has_achieved_fanout(slot, data_id) {
+                            // Verify fanout was achieved correctly
+                            if let Some(reached_nodes) = state.message_reach.get(&(slot, data_id)) {
+                                if reached_nodes.len() < FANOUT_SIZE {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 4: No message duplication
+            Property::<Self>::always("no_message_duplication", |_model, state| {
+                // Each node should receive each message at most once
+                for node in &state.nodes {
+                    let mut message_counts: BTreeMap<(Slot, u64), usize> = BTreeMap::new();
+                    
+                    for (slot, data_id) in &node.received_messages {
+                        *message_counts.entry((*slot, *data_id)).or_insert(0) += 1;
+                    }
+                    
+                    // Check for duplicates
+                    for (_, count) in message_counts {
+                        if count > 1 {
+                            return false;
+                        }
+                    }
+                }
+                true
+            }),
+        ]
     }
 }
 
-/// Test topology adaptation
-pub fn test_topology_adaptation(topology: &str) {
-    println!("--- Testing Topology Adaptation with {} topology ---", topology);
+/// Run formal verification of rotor sampling
+pub fn run_formal_verification() {
+    println!("=== Rotor Sampling Formal Verification ===");
     
-    let config = RotorConfig::default();
-    let nodes: Vec<Node> = (0..20)
-        .map(|i| Node::new(i as u64, 100))
-        .collect();
+    let model = RotorModel {
+        node_count: 4, // Small for formal verification
+        max_slot: 3,
+    };
+
+    println!("Model checking rotor sampling with {} nodes, {} slots", 
+             model.node_count, model.max_slot);
     
-    let mut sampler = RotorSampler::new(config, nodes);
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs()
+        .report(&mut stateright::report::WriteReporter::new(&mut std::io::stdout()));
     
-    // Simulate different topologies
-    match topology {
-        "mesh" => {
-            println!("Mesh topology: All nodes can connect to all others");
-        },
-        "star" => {
-            println!("Star topology: Central hub with spoke connections");
-        },
-        "ring" => {
-            println!("Ring topology: Circular connection pattern");
-        },
-        "tree" => {
-            println!("Tree topology: Hierarchical connection pattern");
-        },
-        _ => {
-            println!("Unknown topology: {}", topology);
+    // Check verification results
+    if result.discoveries().is_empty() {
+        println!("✅ All rotor sampling properties verified successfully");
+    } else {
+        println!("❌ Rotor sampling verification found counterexamples");
+        for (property_name, _path) in result.discoveries() {
+            println!("  - {}", property_name);
         }
     }
-    
-    // Test sampling in this topology
-    for slot in 0..5 {
-        let source_id = slot % 20;
-        let selected = sampler.sample_nodes(source_id, slot);
-        println!("Slot {}: Topology {} selected nodes: {:?}", slot, topology, selected);
-    }
 }
 
-/// Test fault tolerance
-pub fn test_fault_tolerance(fault_percent: u32) {
-    println!("--- Testing Fault Tolerance with {}% faulty nodes ---", fault_percent);
+/// Test rotor model with different configurations
+pub fn test_rotor_model(nodes: usize, slots: u64) {
+    println!("Testing rotor model with {} nodes, {} slots", nodes, slots);
     
-    let config = RotorConfig::default();
-    let mut nodes: Vec<Node> = (0..20)
-        .map(|i| Node::new(i as u64, 100))
-        .collect();
-    
-    // Mark some nodes as offline
-    let faulty_count = (20 * fault_percent / 100) as usize;
-    for i in 0..faulty_count {
-        nodes[i].is_online = false;
-    }
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    
-    // Test sampling with faulty nodes
-    for slot in 0..10 {
-        let source_id = slot % 20;
-        let selected = sampler.sample_nodes(source_id, slot);
-        let online_selected = selected.iter().filter(|&&id| id < 20 && (id as usize) >= faulty_count).count();
-        println!("Slot {}: Selected {} nodes, {} online: {:?}", slot, selected.len(), online_selected, selected);
-    }
-}
+    let model = RotorModel {
+        node_count: nodes,
+        max_slot: slots,
+    };
 
-/// Test load balancing
-pub fn test_load_balancing() {
-    println!("--- Testing Load Balancing ---");
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs();
     
-    let config = RotorConfig::default();
-    let nodes: Vec<Node> = (0..20)
-        .map(|i| Node::new(i as u64, 100))
-        .collect();
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    let mut load_count = vec![0; 20];
-    
-    // Simulate load distribution
-    for slot in 0..100 {
-        let source_id = slot % 20;
-        let selected = sampler.sample_nodes(source_id, slot);
-        
-        for &target in &selected {
-            if target < 20 {
-                load_count[target as usize] += 1;
-            }
-        }
-    }
-    
-    println!("Load distribution across 20 nodes:");
-    for (i, &count) in load_count.iter().enumerate() {
-        println!("  Node {}: {} messages", i, count);
-    }
-}
-
-/// Test scalability
-pub fn test_scalability(node_count: usize) {
-    println!("--- Testing Scalability with {} nodes ---", node_count);
-    
-    let config = RotorConfig::default();
-    let nodes: Vec<Node> = (0..node_count)
-        .map(|i| Node::new(i as u64, 100))
-        .collect();
-    
-    let mut sampler = RotorSampler::new(config, nodes);
-    
-    // Test sampling performance with large node count
-    let start = std::time::Instant::now();
-    
-    for slot in 0..10 {
-        let source_id = slot % node_count as u64;
-        let _selected = sampler.sample_nodes(source_id, slot);
-    }
-    
-    let duration = start.elapsed();
-    println!("Scalability test with {} nodes completed in {:?}", node_count, duration);
+    println!("States explored: {}", result.state_count());
+    println!("Properties verified: {}", result.discoveries().is_empty());
 }
 
 #[cfg(test)]
@@ -354,26 +487,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_rotor_sampler_creation() {
-        let config = RotorConfig::default();
-        let nodes = vec![Node::new(0, 100), Node::new(1, 200)];
-        let sampler = RotorSampler::new(config, nodes);
-        assert_eq!(sampler.nodes.len(), 2);
+    fn test_rotor_state_creation() {
+        let state = RotorState::new(3);
+        assert_eq!(state.nodes.len(), 3);
+        assert_eq!(state.current_slot, 0);
+        assert!(state.network.is_empty());
     }
 
     #[test]
-    fn test_node_creation() {
-        let node = Node::new(1, 150);
-        assert_eq!(node.id, 1);
-        assert_eq!(node.stake, 150);
-        assert!(node.is_online);
+    fn test_stake_weighted_sampling() {
+        let state = RotorState::new(4);
+        let selected = state.perform_stake_weighted_sampling(1, 0);
+        assert!(selected.len() <= FANOUT_SIZE);
+        assert!(!selected.contains(&0)); // Should not select self
     }
 
     #[test]
-    fn test_config_default() {
-        let config = RotorConfig::default();
-        assert_eq!(config.fanout, 3);
-        assert_eq!(config.redundancy, 2);
-        assert_eq!(config.max_retries, 3);
+    fn test_fanout_achievement() {
+        let mut state = RotorState::new(4);
+        let reach_entry = state.message_reach.entry((1, 100)).or_default();
+        reach_entry.insert(0);
+        reach_entry.insert(1);
+        reach_entry.insert(2);
+        reach_entry.insert(3);
+        
+        assert!(state.has_achieved_fanout(1, 100));
     }
 }

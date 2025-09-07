@@ -1,30 +1,41 @@
 use std::env;
-
 use alpenglow_formal::modelling::liveness;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     
-    let mut responsive_stake = 80;
-    let mut seed = 12345;
+    let mut validators = 4;
+    let mut slots = 3;
+    let mut responsive = 3;
+    let mut test_type = "formal";
     
     for i in 0..args.len() {
-        if args[i] == "--responsive-stake" && i + 1 < args.len() {
-            responsive_stake = args[i + 1].parse().unwrap_or(80);
-        } else if args[i] == "--seed" && i + 1 < args.len() {
-            seed = args[i + 1].parse().unwrap_or(12345);
+        if args[i] == "--validators" && i + 1 < args.len() {
+            validators = args[i + 1].parse().unwrap_or(4);
+        } else if args[i] == "--slots" && i + 1 < args.len() {
+            slots = args[i + 1].parse().unwrap_or(3);
+        } else if args[i] == "--responsive" && i + 1 < args.len() {
+            responsive = args[i + 1].parse().unwrap_or(3);
+        } else if args[i] == "--test-type" && i + 1 < args.len() {
+            test_type = &args[i + 1];
         }
     }
     
-    println!("Running liveness verification with {}% responsive stake, seed {}", responsive_stake, seed);
+    println!("Running liveness formal verification: {} test, {} validators ({} responsive), {} slots", 
+             test_type, validators, responsive, slots);
     
-    std::env::set_var("RUST_SEED", seed.to_string());
-    
-    let result = liveness::run_scenario(responsive_stake, 10);
-    
-    if result > 0 {
-        println!("Liveness Success! Slot finalized at T={}.", result);
-    } else {
-        println!("Liveness Failure! Slot did not finalize within the time limit.");
+    match test_type {
+        "formal" => {
+            liveness::run_formal_verification();
+            println!("Liveness formal verification completed");
+        },
+        "test" => {
+            liveness::test_liveness_model(validators, slots, responsive);
+            println!("Liveness model test completed");
+        },
+        _ => {
+            println!("Unknown test type: {}", test_type);
+            std::process::exit(1);
+        }
     }
 }

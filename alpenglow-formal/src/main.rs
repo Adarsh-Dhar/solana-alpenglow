@@ -35,36 +35,36 @@ fn main() {
     println!();
     println!("=== Additional Components ===");
     
-    // Run safety simulation
+    // Run safety formal verification
     println!("\n2. Safety properties verification");
-    modelling::run_safety_simulation();
+    modelling::run_safety_verification();
     
-    // Run liveness simulation
+    // Run liveness formal verification
     println!("\n3. Liveness properties verification");
-    modelling::run_liveness_simulation();
+    modelling::run_liveness_verification();
     
-    // Run resilience simulation
+    // Run resilience formal verification
     println!("\n4. Resilience and fault tolerance verification");
-    modelling::run_resilience_simulation();
+    modelling::run_resilience_verification();
     
-    // Run certificate simulation
+    // Run certificate formal verification
     println!("\n5. Certificate aggregation and uniqueness verification");
-    certificate::run_simulation();
+    certificate::run_formal_verification();
     
-    // Run leader window simulation
+    // Run leader formal verification
     println!("\n6. Leader rotation and window management");
-    leader::run_simulation();
+    leader::run_formal_verification();
     
-    // Run timeout simulation
+    // Run timeout formal verification
     println!("\n7. Timeout handling and skip certificate generation");
-    timeout::run_simulation();
+    timeout::run_formal_verification();
     
-    // Run rotor sampling simulation
+    // Run rotor formal verification
     println!("\n8. Rotor sampling strategy");
-    rotor::run_simulation();
+    rotor::run_formal_verification();
     
-    println!("\n=== All Simulations Complete ===");
-    println!("The Alpenglow formal verification suite has successfully demonstrated:");
+    println!("\n=== All Formal Verification Complete ===");
+    println!("The Alpenglow formal verification suite has successfully verified:");
     println!("- Safety properties of the dual-path finality mechanism");
     println!("- Liveness guarantees under various network conditions");
     println!("- Resilience against Byzantine attacks and network partitions");

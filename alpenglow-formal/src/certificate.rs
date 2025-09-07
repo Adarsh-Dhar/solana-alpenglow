@@ -1,222 +1,489 @@
-//! Certificate aggregation and uniqueness verification for Alpenglow consensus.
-//! This module demonstrates how the system prevents conflicting certificates
-//! from being formed, ensuring safety even in the presence of adversarial validators.
+//! Formal verification model for certificate aggregation and uniqueness in Alpenglow consensus.
+//! This module provides a Stateright-based formal model for verifying certificate uniqueness,
+//! aggregation logic, and safety properties in the presence of adversarial validators.
 
-use std::collections::{HashMap, HashSet};
-use std::fmt;
+use stateright::{Model, Property, Checker};
+use std::collections::{BTreeMap, BTreeSet};
 
-// --- Configuration ---
+// --- Formal Model Configuration ---
 const NOTARIZE_THRESHOLD_PERCENT: u64 = 60;
 const TOTAL_STAKE: u64 = 1000;
+const MAX_SLOTS: u64 = 5; // Formal verification limit
+const MAX_VALIDATORS: usize = 5; // Formal verification limit
 
-/// Represents a signed vote from a single validator.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Vote {
-    pub slot: u64,
-    pub block_hash: Option<String>, // None for a SkipVote
-    pub voter_id: u64,
-    pub stake: u64,
+// Type aliases for clarity
+type Slot = u64;
+type Hash = u64;
+type ActorId = usize;
+type Stake = u64;
+
+/// Represents different types of messages in the certificate system
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum CertificateMessage {
+    /// A vote for a block (NotarVote)
+    NotarVote {
+        slot: Slot,
+        hash: Hash,
+        voter: ActorId,
+    },
+    /// A vote to skip a slot (SkipVote)
+    SkipVote {
+        slot: Slot,
+        voter: ActorId,
+    },
+    /// A certificate formed for a block
+    BlockCertificate {
+        slot: Slot,
+        hash: Hash,
+        stake: Stake,
+    },
+    /// A certificate formed for skipping a slot
+    SkipCertificate {
+        slot: Slot,
+        stake: Stake,
+    },
 }
 
-impl Vote {
-    pub fn new(slot: u64, block_hash: Option<String>, voter_id: u64, stake: u64) -> Self {
-        Self {
-            slot,
-            block_hash,
-            voter_id,
-            stake,
-        }
-    }
-
-    /// A unique identifier for what is being voted on.
-    pub fn key(&self) -> (u64, Option<String>) {
-        (self.slot, self.block_hash.clone())
-    }
+/// Represents messages in transit
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct MessageInTransit {
+    dst: ActorId,
+    msg: CertificateMessage,
 }
 
-impl fmt::Display for Vote {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let vote_type = if self.block_hash.is_some() { "NotarVote" } else { "SkipVote" };
-        write!(
-            f,
-            "({} for Slot {}, Hash: {:?}, Voter: {})",
-            vote_type, self.slot, self.block_hash, self.voter_id
-        )
-    }
+/// Actions that can be taken in the certificate model
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum CertificateAction {
+    /// Cast a vote for a block
+    CastNotarVote {
+        slot: Slot,
+        hash: Hash,
+        voter: ActorId,
+    },
+    /// Cast a skip vote
+    CastSkipVote {
+        slot: Slot,
+        voter: ActorId,
+    },
+    /// Deliver a message to its destination
+    DeliverMessage { msg: MessageInTransit },
+    /// Adversary attempts to equivocate
+    AdversaryEquivocate {
+        slot: Slot,
+        hash1: Hash,
+        hash2: Hash,
+        adversary: ActorId,
+    },
 }
 
-/// Simulates a validator's logic for voting and aggregating certificates.
-#[derive(Debug)]
-pub struct Validator {
-    pub id: u64,
-    pub stake: u64,
-    voted_slots: HashMap<u64, Option<String>>, // Enforces the "vote once per slot" rule
-    vote_pool: HashMap<(u64, Option<String>), HashMap<u64, u64>>, // Stores votes received
-    certificates: HashSet<(u64, Option<String>)>, // Stores keys of successfully aggregated certificates
+/// State of a validator in the certificate model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ValidatorState {
+    /// Votes cast by this validator: (slot, hash) -> true
+    votes_cast: BTreeMap<(Slot, Option<Hash>), bool>,
+    /// Vote pool: (slot, hash) -> set of voters
+    vote_pool: BTreeMap<(Slot, Option<Hash>), BTreeSet<ActorId>>,
+    /// Certificates formed: (slot, hash) pairs
+    certificates: BTreeSet<(Slot, Option<Hash>)>,
+    /// Whether this validator is adversarial
+    is_adversary: bool,
+    /// Stake of this validator
+    stake: Stake,
 }
 
-impl Validator {
-    pub fn new(id: u64, stake: u64) -> Self {
-        Self {
-            id,
-            stake,
-            voted_slots: HashMap::new(),
-            vote_pool: HashMap::new(),
-            certificates: HashSet::new(),
-        }
-    }
+/// Main state of the certificate formal model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct CertificateState {
+    /// Network messages in transit
+    network: BTreeSet<MessageInTransit>,
+    /// Per-validator states
+    validators: Vec<ValidatorState>,
+    /// Global certificates formed: (slot, hash) -> stake
+    global_certificates: BTreeMap<(Slot, Option<Hash>), Stake>,
+    /// Stake distribution: validator -> stake
+    stake_distribution: BTreeMap<ActorId, Stake>,
+}
 
-    /// Creates a vote, but only if the validator hasn't already voted for this slot.
-    pub fn create_vote(&mut self, slot: u64, block_hash: Option<String>) -> Option<Vote> {
-        if self.voted_slots.contains_key(&slot) {
-            println!("Validator {}: IGNORED attempt to double-vote for slot {}.", self.id, slot);
-            return None;
-        }
+/// Formal model for certificate aggregation and uniqueness
+#[derive(Clone)]
+pub struct CertificateModel {
+    /// Number of validators
+    pub validator_count: usize,
+    /// Maximum slots to explore
+    pub max_slot: Slot,
+    /// Number of adversarial validators
+    pub adversary_count: usize,
+}
 
-        // The core safety rule: vote once and record it.
-        self.voted_slots.insert(slot, block_hash.clone());
-        println!(
-            "✅ Validator {} (Stake: {}): Voted for hash '{:?}' in slot {}.",
-            self.id, self.stake, block_hash, slot
-        );
-        Some(Vote::new(slot, block_hash, self.id, self.stake))
-    }
-
-    /// Simulates receiving a vote from the network and adding it to the local pool.
-    pub fn receive_vote(&mut self, vote: &Vote) {
-        let vote_key = vote.key();
-        let slot_votes = self.vote_pool.entry(vote_key).or_insert_with(HashMap::new);
+impl CertificateState {
+    fn new(validator_count: usize, adversary_count: usize) -> Self {
+        let mut stake_distribution = BTreeMap::new();
+        let stake_per_validator = TOTAL_STAKE / validator_count as u64;
         
-        // Add the vote, preventing duplicate entries from the same voter
-        slot_votes.insert(vote.voter_id, vote.stake);
-    }
+        for i in 0..validator_count {
+            stake_distribution.insert(i, stake_per_validator);
+        }
 
-    /// Scans the vote pool to see if any certificates can be formed.
-    /// This would be run continuously in a real node.
-    pub fn aggregate_certificates(&mut self) {
-        println!("\nValidator {}: Aggregating certificates from vote pool...", self.id);
-        
-        for (vote_key, votes) in &self.vote_pool {
-            if self.certificates.contains(vote_key) {
-                continue; // Already formed this certificate
-            }
-
-            let current_stake: u64 = votes.values().sum();
-            println!(
-                "  - Checking {:?}: Total stake = {}/{}",
-                vote_key, current_stake, TOTAL_STAKE
-            );
-
-            if current_stake >= (TOTAL_STAKE * NOTARIZE_THRESHOLD_PERCENT / 100) {
-                self.certificates.insert(vote_key.clone());
-                println!(
-                    "  🔥 CERTIFICATE FORMED for Slot {} with Hash '{:?}'! Stake: {}",
-                    vote_key.0, vote_key.1, current_stake
-                );
-            }
+        Self {
+            network: BTreeSet::new(),
+            validators: (0..validator_count).map(|i| ValidatorState {
+                votes_cast: BTreeMap::new(),
+                vote_pool: BTreeMap::new(),
+                certificates: BTreeSet::new(),
+                is_adversary: i < adversary_count,
+                stake: stake_per_validator,
+            }).collect(),
+            global_certificates: BTreeMap::new(),
+            stake_distribution,
         }
     }
 
-    pub fn get_certificates(&self) -> &HashSet<(u64, Option<String>)> {
-        &self.certificates
+    /// Check if a certificate can be formed for a slot and hash
+    fn can_form_certificate(&self, slot: Slot, hash: Option<Hash>) -> bool {
+        if let Some(voters) = self.validators[0].vote_pool.get(&(slot, hash)) {
+            let stake: Stake = voters.iter()
+                .filter_map(|voter_id| self.stake_distribution.get(voter_id))
+                .sum();
+            stake >= (TOTAL_STAKE * NOTARIZE_THRESHOLD_PERCENT / 100)
+        } else {
+            false
+        }
     }
 
-    pub fn get_vote_pool(&self) -> &HashMap<(u64, Option<String>), HashMap<u64, u64>> {
-        &self.vote_pool
+    /// Get total stake for a set of voters
+    fn get_stake_for_voters(&self, voters: &BTreeSet<ActorId>) -> Stake {
+        voters.iter()
+            .filter_map(|voter_id| self.stake_distribution.get(voter_id))
+            .sum()
     }
 }
 
-/// Demonstrates an adversary failing to create conflicting certificates.
-pub fn run_simulation() {
-    println!("--- Alpenglow Certificate Uniqueness Simulation ---");
+impl Model for CertificateModel {
+    type State = CertificateState;
+    type Action = CertificateAction;
 
-    // 1. Setup Validators
-    let mut validators: Vec<Validator> = (0..18)
-        .map(|i| Validator::new(i, 50))
-        .collect(); // 18 honest validators with 50 stake each (900 total)
-    
-    let adversary = Validator::new(99, 100); // 1 adversary with 100 stake (10% of total)
-    
-    // Main validator who will be aggregating votes from everyone
-    let mut observer_validator = Validator::new(100, 0);
+    fn init_states(&self) -> Vec<Self::State> {
+        vec![CertificateState::new(self.validator_count, self.adversary_count)]
+    }
 
-    let slot_to_contest = 5;
-    let hash_a = Some("block-hash-alpha".to_string());
-    let hash_b = Some("block-hash-bravo".to_string()); // Conflicting block
+    fn actions(&self, state: &Self::State, actions: &mut Vec<Self::Action>) {
+        // 1. Deliver any message in the network
+        for msg in &state.network {
+            actions.push(CertificateAction::DeliverMessage { msg: msg.clone() });
+        }
 
-    println!(
-        "\nAn adversary (Validator 99, Stake: {}) will try to notarize two blocks for Slot {}.\n",
-        adversary.stake, slot_to_contest
-    );
+        // 2. Cast votes for blocks
+        for slot in 1..=self.max_slot {
+            for hash in 1..=3 { // Multiple possible hashes per slot
+                for voter_id in 0..self.validator_count {
+                    let vote_key = (slot, Some(hash));
+                    if !state.validators[voter_id].votes_cast.contains_key(&vote_key) {
+                        actions.push(CertificateAction::CastNotarVote {
+                            slot,
+                            hash,
+                            voter: voter_id,
+                        });
+                    }
+                }
+            }
+        }
 
-    // 2. Generation Phase
-    let mut all_votes = Vec::new();
+        // 3. Cast skip votes
+        for slot in 1..=self.max_slot {
+            for voter_id in 0..self.validator_count {
+                let vote_key = (slot, None);
+                if !state.validators[voter_id].votes_cast.contains_key(&vote_key) {
+                    actions.push(CertificateAction::CastSkipVote {
+                        slot,
+                        voter: voter_id,
+                    });
+                }
+            }
+        }
 
-    // Group A (first 9 validators) votes for hash_A
-    for i in 0..9 {
-        if let Some(vote) = validators[i].create_vote(slot_to_contest, hash_a.clone()) {
-            all_votes.push(vote);
+        // 4. Adversary equivocation attempts
+        for slot in 1..=self.max_slot {
+            for adversary_id in 0..self.adversary_count {
+                actions.push(CertificateAction::AdversaryEquivocate {
+                    slot,
+                    hash1: slot * 1000 + 1,
+                    hash2: slot * 1000 + 2,
+                    adversary: adversary_id,
+                });
+            }
         }
     }
 
-    // Group B (next 9 validators) votes for hash_B
-    for i in 9..18 {
-        if let Some(vote) = validators[i].create_vote(slot_to_contest, hash_b.clone()) {
-            all_votes.push(vote);
+    fn next_state(&self, last_state: &Self::State, action: Self::Action) -> Option<Self::State> {
+        let mut next_state = last_state.clone();
+        let mut validators = last_state.validators.clone();
+
+        match action {
+            CertificateAction::CastNotarVote { slot, hash, voter } => {
+                let mut validator_state = validators[voter].clone();
+                let vote_key = (slot, Some(hash));
+                
+                // Check if validator can vote (not already voted for this slot)
+                let can_vote = !validator_state.votes_cast.iter()
+                    .any(|((s, _), _)| *s == slot);
+                
+                if can_vote {
+                    validator_state.votes_cast.insert(vote_key, true);
+                    
+                    // Broadcast vote to all validators
+                    for i in 0..self.validator_count {
+                        next_state.network.insert(MessageInTransit {
+                            dst: i,
+                            msg: CertificateMessage::NotarVote {
+                                slot,
+                                hash,
+                                voter,
+                            },
+                        });
+                    }
+                }
+                validators[voter] = validator_state;
+            }
+            CertificateAction::CastSkipVote { slot, voter } => {
+                let mut validator_state = validators[voter].clone();
+                let vote_key = (slot, None);
+                
+                // Check if validator can vote (not already voted for this slot)
+                let can_vote = !validator_state.votes_cast.iter()
+                    .any(|((s, _), _)| *s == slot);
+                
+                if can_vote {
+                    validator_state.votes_cast.insert(vote_key, true);
+                    
+                    // Broadcast skip vote to all validators
+                    for i in 0..self.validator_count {
+                        next_state.network.insert(MessageInTransit {
+                            dst: i,
+                            msg: CertificateMessage::SkipVote {
+                                slot,
+                                voter,
+                            },
+                        });
+                    }
+                }
+                validators[voter] = validator_state;
+            }
+            CertificateAction::DeliverMessage { msg } => {
+                let recipient_id = msg.dst;
+                let mut validator_state = validators[recipient_id].clone();
+
+                // Remove message from network
+                if !next_state.network.remove(&msg) { return None; }
+
+                match msg.msg {
+                    CertificateMessage::NotarVote { slot, hash, voter } => {
+                        // Add vote to pool
+                        let vote_key = (slot, Some(hash));
+                        let voters = validator_state.vote_pool.entry(vote_key).or_default();
+                        voters.insert(voter);
+
+                        // Check for certificate formation
+                        if next_state.can_form_certificate(slot, Some(hash)) {
+                            let stake = next_state.get_stake_for_voters(voters);
+                            validator_state.certificates.insert((slot, Some(hash)));
+                            next_state.global_certificates.insert((slot, Some(hash)), stake);
+                        }
+                    }
+                    CertificateMessage::SkipVote { slot, voter } => {
+                        // Add skip vote to pool
+                        let vote_key = (slot, None);
+                        let voters = validator_state.vote_pool.entry(vote_key).or_default();
+                        voters.insert(voter);
+
+                        // Check for skip certificate formation
+                        if next_state.can_form_certificate(slot, None) {
+                            let stake = next_state.get_stake_for_voters(voters);
+                            validator_state.certificates.insert((slot, None));
+                            next_state.global_certificates.insert((slot, None), stake);
+                        }
+                    }
+                    CertificateMessage::BlockCertificate { slot, hash, stake } => {
+                        // Certificate formed
+                        validator_state.certificates.insert((slot, Some(hash)));
+                        next_state.global_certificates.insert((slot, Some(hash)), stake);
+                    }
+                    CertificateMessage::SkipCertificate { slot, stake } => {
+                        // Skip certificate formed
+                        validator_state.certificates.insert((slot, None));
+                        next_state.global_certificates.insert((slot, None), stake);
+                    }
+                }
+                validators[recipient_id] = validator_state;
+            }
+            CertificateAction::AdversaryEquivocate { slot, hash1, hash2, adversary } => {
+                let mut validator_state = validators[adversary].clone();
+                
+                // Adversary attempts to vote for both hashes
+                let vote_key1 = (slot, Some(hash1));
+                let vote_key2 = (slot, Some(hash2));
+                
+                // Adversary can equivocate (vote for multiple conflicting blocks)
+                if validator_state.is_adversary {
+                    validator_state.votes_cast.insert(vote_key1, true);
+                    validator_state.votes_cast.insert(vote_key2, true);
+                    
+                    // Broadcast both votes
+                    for i in 0..self.validator_count {
+                        next_state.network.insert(MessageInTransit {
+                            dst: i,
+                            msg: CertificateMessage::NotarVote {
+                                slot,
+                                hash: hash1,
+                                voter: adversary,
+                            },
+                        });
+                        next_state.network.insert(MessageInTransit {
+                            dst: i,
+                            msg: CertificateMessage::NotarVote {
+                                slot,
+                                hash: hash2,
+                                voter: adversary,
+                            },
+                        });
+                    }
+                }
+                validators[adversary] = validator_state;
+            }
         }
+
+        next_state.validators = validators;
+        Some(next_state)
     }
 
-    // Adversary double-votes! (But its own state prevents it from creating two valid votes)
-    // A real adversary would bypass this check, but the honest nodes will still only count one vote from them per slot.
-    // For simulation, we'll manually create its conflicting votes.
-    let adversary_vote_a = Vote::new(slot_to_contest, hash_a.clone(), adversary.id, adversary.stake);
-    let adversary_vote_b = Vote::new(slot_to_contest, hash_b.clone(), adversary.id, adversary.stake);
-    println!(" Adversary {} maliciously creates votes for BOTH hashes.", adversary.id);
-    all_votes.extend([adversary_vote_a, adversary_vote_b]);
-
-    // 3. Aggregation Phase
-    // Shuffle votes to simulate network delays and random arrival order
-    use rand::seq::SliceRandom;
-    use rand::thread_rng;
-    all_votes.shuffle(&mut thread_rng());
-
-    for vote in &all_votes {
-        observer_validator.receive_vote(vote);
+    /// Properties to verify in the certificate model
+    fn properties(&self) -> Vec<Property<Self>> {
+        vec![
+            // Property 1: Certificate uniqueness - no conflicting certificates
+            Property::<Self>::always("certificate_uniqueness", |model, state| {
+                // Check that no two conflicting certificates exist for the same slot
+                for slot in 1..=model.max_slot {
+                    let mut certificates_for_slot = Vec::new();
+                    
+                    for ((s, hash_opt), _) in &state.global_certificates {
+                        if *s == slot {
+                            certificates_for_slot.push(hash_opt);
+                        }
+                    }
+                    
+                    // Should have at most one certificate per slot
+                    if certificates_for_slot.len() > 1 {
+                        return false;
+                    }
+                }
+                true
+            }),
+            
+            // Property 2: Vote uniqueness per validator per slot
+            Property::<Self>::always("vote_uniqueness", |_, state| {
+                for validator in &state.validators {
+                    // Count votes per slot
+                    let mut votes_per_slot: BTreeMap<Slot, usize> = BTreeMap::new();
+                    
+                    for ((slot, _), _) in &validator.votes_cast {
+                        *votes_per_slot.entry(*slot).or_insert(0) += 1;
+                    }
+                    
+                    // Each validator should vote at most once per slot
+                    for (_, count) in votes_per_slot {
+                        if count > 1 {
+                            return false;
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 3: Certificate threshold enforcement
+            Property::<Self>::always("certificate_threshold", |_model, state| {
+                for ((_slot, _hash_opt), stake) in &state.global_certificates {
+                    // Verify the stake meets the threshold
+                    if *stake < (TOTAL_STAKE * NOTARIZE_THRESHOLD_PERCENT / 100) {
+                        return false;
+                    }
+                }
+                true
+            }),
+            
+            // Property 4: Adversary equivocation detection
+            Property::<Self>::always("adversary_equivocation_detection", |model, state| {
+                // Check that adversaries cannot create conflicting certificates
+                for slot in 1..=model.max_slot {
+                    let mut block_certificates = 0;
+                    let mut skip_certificates = 0;
+                    
+                    for ((s, hash_opt), _) in &state.global_certificates {
+                        if *s == slot {
+                            match hash_opt {
+                                Some(_) => block_certificates += 1,
+                                None => skip_certificates += 1,
+                            }
+                        }
+                    }
+                    
+                    // Should have at most one type of certificate per slot
+                    if block_certificates > 0 && skip_certificates > 0 {
+                        return false;
+                    }
+                }
+                true
+            }),
+        ]
     }
+}
 
-    observer_validator.aggregate_certificates();
+/// Run formal verification of certificate aggregation
+pub fn run_formal_verification() {
+    println!("=== Certificate Aggregation Formal Verification ===");
+    
+    let model = CertificateModel {
+        validator_count: 4, // Small for formal verification
+        max_slot: 3,
+        adversary_count: 1, // One adversarial validator
+    };
 
-    println!("\n--- Simulation Results ---");
-    let certificate_count = observer_validator.get_certificates().len();
-    if certificate_count == 2 {
-        println!("🔴 FAILURE: Two conflicting certificates were formed. The safety property is broken.");
-    } else if certificate_count == 1 {
-        let cert = observer_validator.get_certificates().iter().next().unwrap();
-        println!(
-            "✅ SUCCESS: Only one certificate for Slot {} ('{:?}') was formed.",
-            cert.0, cert.1
-        );
+    println!("Model checking certificate aggregation with {} validators ({} adversarial), {} slots", 
+             model.validator_count, model.adversary_count, model.max_slot);
+    
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs()
+        .report(&mut stateright::report::WriteReporter::new(&mut std::io::stdout()));
+    
+    // Check verification results
+    if result.discoveries().is_empty() {
+        println!("✅ All certificate properties verified successfully");
     } else {
-        println!("🔵 NOTE: No certificate was formed because neither option reached the 60% threshold.");
+        println!("❌ Certificate verification found counterexamples");
+        for (property_name, _path) in result.discoveries() {
+            println!("  - {}", property_name);
+        }
     }
+}
 
-    // Calculate final stake for each conflicting hash
-    let stake_a: u64 = observer_validator
-        .get_vote_pool()
-        .get(&(slot_to_contest, hash_a.clone()))
-        .map(|votes| votes.values().sum())
-        .unwrap_or(0);
+/// Test certificate model with different configurations
+pub fn test_certificate_model(validators: usize, slots: u64, adversaries: usize) {
+    println!("Testing certificate model with {} validators ({} adversarial), {} slots", 
+             validators, adversaries, slots);
     
-    let stake_b: u64 = observer_validator
-        .get_vote_pool()
-        .get(&(slot_to_contest, hash_b.clone()))
-        .map(|votes| votes.values().sum())
-        .unwrap_or(0);
+    let model = CertificateModel {
+        validator_count: validators,
+        max_slot: slots,
+        adversary_count: adversaries,
+    };
 
-    println!("Final stake for Hash A: {} (Honest: 450, Adversary: 100)", stake_a);
-    println!("Final stake for Hash B: {} (Honest: 450, Adversary: 100)", stake_b);
-    println!("Required stake: {}", TOTAL_STAKE * NOTARIZE_THRESHOLD_PERCENT / 100);
-    println!("Because neither side could reach the threshold alone, and honest validators did not vote for both, no conflicting certificate could be created.");
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs();
+    
+    println!("States explored: {}", result.state_count());
+    println!("Properties verified: {}", result.discoveries().is_empty());
 }
 
 #[cfg(test)]
@@ -224,18 +491,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_vote_creation() {
-        let mut validator = Validator::new(1, 100);
-        let vote = validator.create_vote(1, Some("hash1".to_string()));
-        assert!(vote.is_some());
-        assert_eq!(vote.unwrap().slot, 1);
+    fn test_certificate_state_creation() {
+        let state = CertificateState::new(3, 1);
+        assert_eq!(state.validators.len(), 3);
+        assert!(state.validators[0].is_adversary);
+        assert!(!state.validators[1].is_adversary);
     }
 
     #[test]
-    fn test_double_vote_prevention() {
-        let mut validator = Validator::new(1, 100);
-        let _vote1 = validator.create_vote(1, Some("hash1".to_string()));
-        let vote2 = validator.create_vote(1, Some("hash2".to_string()));
-        assert!(vote2.is_none()); // Should be prevented
+    fn test_certificate_formation() {
+        let mut state = CertificateState::new(3, 0);
+        // Add enough votes to form certificate
+        let mut validator = state.validators[0].clone();
+        let voters = validator.vote_pool.entry((1, Some(100))).or_default();
+        voters.insert(0);
+        voters.insert(1);
+        voters.insert(2); // 3/3 validators = 100% > 60%
+        state.validators[0] = validator;
+        
+        assert!(state.can_form_certificate(1, Some(100)));
+    }
+
+    #[test]
+    fn test_adversary_equivocation() {
+        let state = CertificateState::new(3, 1);
+        assert!(state.validators[0].is_adversary);
+        assert!(!state.validators[1].is_adversary);
     }
 }

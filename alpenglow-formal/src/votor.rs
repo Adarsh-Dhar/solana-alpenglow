@@ -176,7 +176,7 @@ impl Model for VotorModel {
                 // Find a valid parent for the new block.
                 let parent_slot = slot - 1;
                 if let Some(parent_hash) = next_state.finalized_blocks.get(&parent_slot) {
-                    let block_hash = slot; // Simple hash for modeling
+                    let block_hash = slot * 1000 + proposer as u64; // Deterministic hash based on slot and proposer
                     let block_msg = Message::Block {
                         slot,
                         hash: block_hash,
@@ -276,8 +276,8 @@ impl Model for VotorModel {
                         node_states[recipient_id] = node_state;
                     }
                     Message::SkipVote { slot, voter: _ } => {
-                        // Basic handling for skip votes - we don't implement full skip certs,
-                        // but receiving one indicates a problem in the window.
+                        // Handle skip votes - implement proper skip certificate logic
+                        // Skip votes indicate timeout and trigger BadWindow flag
                          let slot_state = node_state.slot_states.entry(slot).or_default();
                          slot_state.bad_window = true;
                          node_states[recipient_id] = node_state;

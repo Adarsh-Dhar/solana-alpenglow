@@ -1,56 +1,34 @@
 use std::env;
-
 use alpenglow_formal::leader;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     
-    let mut test_type = "rotation";
-    let mut window_size = 10;
-    let mut failure_rate = 20;
-    let mut seed = 12345;
+    let mut validators = 3;
+    let mut slots = 5;
+    let mut test_type = "formal";
     
     for i in 0..args.len() {
-        if args[i] == "--test-type" && i + 1 < args.len() {
+        if args[i] == "--validators" && i + 1 < args.len() {
+            validators = args[i + 1].parse().unwrap_or(3);
+        } else if args[i] == "--slots" && i + 1 < args.len() {
+            slots = args[i + 1].parse().unwrap_or(5);
+        } else if args[i] == "--test-type" && i + 1 < args.len() {
             test_type = &args[i + 1];
-        } else if args[i] == "--window-size" && i + 1 < args.len() {
-            window_size = args[i + 1].parse().unwrap_or(10);
-        } else if args[i] == "--failure-rate" && i + 1 < args.len() {
-            failure_rate = args[i + 1].parse().unwrap_or(20);
-        } else if args[i] == "--seed" && i + 1 < args.len() {
-            seed = args[i + 1].parse().unwrap_or(12345);
         }
     }
     
-    println!("Running leader verification: {} test, window {}, failure rate {}%, seed {}", 
-             test_type, window_size, failure_rate, seed);
-    
-    std::env::set_var("RUST_SEED", seed.to_string());
+    println!("Running leader formal verification: {} test, {} validators, {} slots", 
+             test_type, validators, slots);
     
     match test_type {
-        "rotation" => {
-            leader::run_simulation();
-            println!("Leader rotation successful");
+        "formal" => {
+            leader::run_formal_verification();
+            println!("Leader formal verification completed");
         },
-        "window" => {
-            leader::test_window_management(window_size);
-            println!("Window management successful");
-        },
-        "badwindow" => {
-            leader::test_badwindow_management();
-            println!("BadWindow management successful");
-        },
-        "failure" => {
-            leader::test_failure_handling(failure_rate);
-            println!("Failure handling successful");
-        },
-        "stake_weighted" => {
-            leader::test_stake_weighted_selection();
-            println!("Stake-weighted selection successful");
-        },
-        "window_sliding" => {
-            leader::test_window_sliding();
-            println!("Window sliding successful");
+        "test" => {
+            leader::test_leader_model(validators, slots);
+            println!("Leader model test completed");
         },
         _ => {
             println!("Unknown test type: {}", test_type);

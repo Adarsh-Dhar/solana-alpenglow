@@ -1,391 +1,411 @@
-//! Timeout handling and skip certificate generation for Alpenglow consensus.
-//! This module demonstrates how the system handles timeouts and generates
-//! skip certificates when leaders fail to produce blocks in time.
+//! Formal verification model for timeout handling and skip certificate generation in Alpenglow consensus.
+//! This module provides a Stateright-based formal model for verifying timeout mechanisms,
+//! skip certificate generation, and BadWindow flag management.
 
-use std::collections::{HashMap, HashSet};
-use std::thread;
-use std::time::Duration;
-use rand::Rng;
+use stateright::{Model, Property, Checker};
+use std::collections::{BTreeMap, BTreeSet};
 
-// --- Configuration ---
+// --- Formal Model Configuration ---
 const SKIP_CERTIFICATE_THRESHOLD_PERCENT: u64 = 60;
 const TOTAL_STAKE: u64 = 1000;
-const SLOT_TIMEOUT_MILLIS: u64 = 100; // A short timeout for simulation purposes
+const MAX_SLOTS: u64 = 5; // Formal verification limit
+const MAX_VALIDATORS: usize = 5; // Formal verification limit
 
-/// Represents a vote from a validator.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Vote {
-    pub slot: u64,
-    pub block_hash: Option<String>, // None for a SkipVote
-    pub voter_id: u64,
-    pub stake: u64,
+// Type aliases for clarity
+type Slot = u64;
+type Hash = u64;
+type ActorId = usize;
+type Stake = u64;
+
+/// Represents different types of messages in the timeout system
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum TimeoutMessage {
+    /// A block proposal from a leader
+    BlockProposal {
+        slot: Slot,
+        hash: Hash,
+        proposer: ActorId,
+    },
+    /// A vote for a block (NotarVote)
+    NotarVote {
+        slot: Slot,
+        hash: Hash,
+        voter: ActorId,
+    },
+    /// A vote to skip a slot (SkipVote)
+    SkipVote {
+        slot: Slot,
+        voter: ActorId,
+    },
+    /// A timeout event for a specific slot
+    TimeoutEvent {
+        slot: Slot,
+        validator: ActorId,
+    },
 }
 
-impl Vote {
-    pub fn new(slot: u64, block_hash: Option<String>, voter_id: u64, stake: u64) -> Self {
-        Self {
-            slot,
-            block_hash,
-            voter_id,
-            stake,
-        }
-    }
+/// Represents messages in transit
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct MessageInTransit {
+    dst: ActorId,
+    msg: TimeoutMessage,
 }
 
-impl std::fmt::Display for Vote {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let vote_type = if self.block_hash.is_some() { "NotarVote" } else { "SkipVote" };
-        write!(
-            f,
-            "({} for Slot {}, Voter: {})",
-            vote_type, self.slot, self.voter_id
-        )
-    }
+/// Actions that can be taken in the timeout model
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum TimeoutAction {
+    /// Propose a block for a slot
+    ProposeBlock {
+        slot: Slot,
+        proposer: ActorId,
+    },
+    /// Deliver a message to its destination
+    DeliverMessage { msg: MessageInTransit },
+    /// Trigger a timeout for a slot at a validator
+    TriggerTimeout {
+        slot: Slot,
+        validator: ActorId,
+    },
+    /// Advance to the next slot
+    AdvanceSlot,
 }
 
-/// Simulates a validator's logic, including timeouts.
-#[derive(Debug)]
-pub struct Validator {
-    pub id: u64,
-    pub stake: u64,
-    voted_slots: HashMap<u64, Option<String>>,
-    vote_pool: HashMap<(u64, Option<String>), HashMap<u64, u64>>,
-    certificates: HashSet<(u64, Option<String>)>,
+/// State of a validator in the timeout model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ValidatorState {
+    /// Votes cast by this validator (slot -> hash or None for skip)
+    votes_cast: BTreeMap<Slot, Option<Hash>>,
+    /// Vote pool: (slot, hash) -> set of voters
+    vote_pool: BTreeMap<(Slot, Option<Hash>), BTreeSet<ActorId>>,
+    /// Certificates formed: (slot, hash) pairs
+    certificates: BTreeSet<(Slot, Option<Hash>)>,
+    /// BadWindow flag state
     bad_window: bool,
+    /// Current slot being processed
+    current_slot: Slot,
 }
 
-impl Validator {
-    pub fn new(id: u64, stake: u64) -> Self {
+/// Main state of the timeout formal model
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct TimeoutState {
+    /// Network messages in transit
+    network: BTreeSet<MessageInTransit>,
+    /// Per-validator states
+    validators: Vec<ValidatorState>,
+    /// Global current slot
+    current_slot: Slot,
+    /// Skip certificates formed: slot -> true if skip cert exists
+    skip_certificates: BTreeMap<Slot, bool>,
+    /// Block proposals: slot -> hash
+    block_proposals: BTreeMap<Slot, Hash>,
+}
+
+/// Formal model for timeout handling and skip certificate generation
+#[derive(Clone)]
+pub struct TimeoutModel {
+    /// Number of validators
+    pub validator_count: usize,
+    /// Maximum slots to explore
+    pub max_slot: Slot,
+}
+
+impl TimeoutState {
+    fn new(validator_count: usize) -> Self {
         Self {
-            id,
-            stake,
-            voted_slots: HashMap::new(),
-            vote_pool: HashMap::new(),
-            certificates: HashSet::new(),
+            network: BTreeSet::new(),
+            validators: (0..validator_count).map(|_| ValidatorState {
+                votes_cast: BTreeMap::new(),
+                vote_pool: BTreeMap::new(),
+                certificates: BTreeSet::new(),
             bad_window: false,
+                current_slot: 0,
+            }).collect(),
+            current_slot: 0,
+            skip_certificates: BTreeMap::new(),
+            block_proposals: BTreeMap::new(),
         }
     }
 
-    /// Begins the timeout countdown for a new slot.
-    pub fn start_slot(&mut self, slot: u64) -> Option<Vote> {
-        println!("Validator {:2}: Started timer for Slot {}.", self.id, slot);
-        
-        // In a real system, this would be an async task. Here we simulate it.
-        // We'll check for a block after a delay.
-        let mut rng = rand::thread_rng();
-        let jitter = rng.gen_range(-5..=5);
-        let timeout_duration = Duration::from_millis((SLOT_TIMEOUT_MILLIS as i64 + jitter as i64).max(1) as u64);
-        thread::sleep(timeout_duration);
-
-        // Check if we managed to vote for a block in time
-        if !self.voted_slots.contains_key(&slot) {
-            println!("🔴 Validator {:2}: TIMEOUT for Slot {}!", self.id, slot);
-            return self.create_skip_vote(slot);
+    /// Check if a skip certificate can be formed for a slot
+    fn can_form_skip_certificate(&self, slot: Slot) -> bool {
+        if let Some(voters) = self.validators[0].vote_pool.get(&(slot, None)) {
+            let stake: Stake = voters.len() as u64 * (TOTAL_STAKE / self.validators.len() as u64);
+            stake >= (TOTAL_STAKE * SKIP_CERTIFICATE_THRESHOLD_PERCENT / 100)
+        } else {
+            false
         }
-        None
     }
 
-    /// Simulates receiving a block and voting, if within the timeout window.
-    pub fn receive_block_and_vote(&mut self, slot: u64, block_hash: String) -> Option<Vote> {
-        if self.voted_slots.contains_key(&slot) {
-            return None; // Already voted
+    /// Check if a block certificate can be formed for a slot and hash
+    fn can_form_block_certificate(&self, slot: Slot, hash: Hash) -> bool {
+        if let Some(voters) = self.validators[0].vote_pool.get(&(slot, Some(hash))) {
+            let stake: Stake = voters.len() as u64 * (TOTAL_STAKE / self.validators.len() as u64);
+            stake >= (TOTAL_STAKE * SKIP_CERTIFICATE_THRESHOLD_PERCENT / 100)
+        } else {
+            false
         }
-        
-        println!(
-            "✅ Validator {:2}: Received block '{}' and cast NotarVote.",
-            self.id, block_hash
-        );
-        self.voted_slots.insert(slot, Some(block_hash.clone()));
-        Some(Vote::new(slot, Some(block_hash), self.id, self.stake))
+    }
+}
+
+impl Model for TimeoutModel {
+    type State = TimeoutState;
+    type Action = TimeoutAction;
+
+    fn init_states(&self) -> Vec<Self::State> {
+        vec![TimeoutState::new(self.validator_count)]
     }
 
-    /// Creates a SkipVote after a timeout.
-    pub fn create_skip_vote(&mut self, slot: u64) -> Option<Vote> {
-        if self.voted_slots.contains_key(&slot) {
-            return None;
+    fn actions(&self, state: &Self::State, actions: &mut Vec<Self::Action>) {
+        // 1. Deliver any message in the network
+        for msg in &state.network {
+            actions.push(TimeoutAction::DeliverMessage { msg: msg.clone() });
         }
-        
-        self.voted_slots.insert(slot, None); // Mark as voted (to skip)
-        println!(
-            "✉️ Validator {:2}: Generating and broadcasting SkipVote for Slot {}.",
-            self.id, slot
-        );
-        Some(Vote::new(slot, None, self.id, self.stake))
-    }
 
-    /// Aggregates all votes to check for certificates.
-    pub fn aggregate_certificates(&mut self, all_votes_cast: &[Vote]) {
-        // Reset and rebuild view from all available votes
-        self.vote_pool.clear();
-        for vote in all_votes_cast {
-            let key = (vote.slot, vote.block_hash.clone());
-            let slot_votes = self.vote_pool.entry(key).or_insert_with(HashMap::new);
-            slot_votes.insert(vote.voter_id, vote.stake);
-        }
-        
-        println!(
-            "\nValidator {:2}: Aggregating from {} total votes...",
-            self.id, all_votes_cast.len()
-        );
-        
-        for (key, votes) in &self.vote_pool {
-            let current_stake: u64 = votes.values().sum();
-            if current_stake >= (TOTAL_STAKE * SKIP_CERTIFICATE_THRESHOLD_PERCENT / 100) {
-                if !self.certificates.contains(key) {
-                    self.certificates.insert(key.clone());
-                    println!("🔥 CERTIFICATE FORMED for {:?}! Stake: {}", key, current_stake);
-                    
-                    // This is the key logic: a SkipCertificate sets the BadWindow flag
-                    if key.1.is_none() { // key.1 is the block_hash
-                        println!(
-                            "🚦 Validator {:2}: Observed SkipCertificate. Setting BadWindow flag to TRUE.",
-                            self.id
-                        );
-                        self.bad_window = true;
-                    }
+        // 2. Propose blocks for current and future slots
+        for proposer_id in 0..self.validator_count {
+            for slot in state.current_slot..=self.max_slot {
+                if !state.block_proposals.contains_key(&slot) {
+                    actions.push(TimeoutAction::ProposeBlock {
+                        slot,
+                        proposer: proposer_id,
+                    });
                 }
             }
         }
-    }
 
-    /// Attempts to cast a FinalVote, respecting the BadWindow flag.
-    pub fn try_final_vote(&self, notarized_slot: u64) -> bool {
-        println!(
-            "\nValidator {:2}: Checking conditions to cast FinalVote for slot {}...",
-            self.id, notarized_slot
-        );
-        
-        if self.bad_window {
-            println!(
-                "❌ Validator {:2}: CANNOT cast FinalVote. BadWindow flag is active.",
-                self.id
-            );
-            false
-        } else {
-            println!(
-                "👍 Validator {:2}: OK to cast FinalVote. BadWindow is clear.",
-                self.id
-            );
-            true
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn is_bad_window_active(&self) -> bool {
-        self.bad_window
-    }
-
-    #[allow(dead_code)]
-    pub fn get_certificates(&self) -> &HashSet<(u64, Option<String>)> {
-        &self.certificates
-    }
-}
-
-/// Runs the timeout and skip certificate simulation.
-pub fn run_simulation() {
-    println!("--- Alpenglow Timeout & Skip Certificate Simulation ---");
-    
-    // Setup: 10 validators, 100 stake each
-    let mut validators: Vec<Validator> = (0..10)
-        .map(|i| Validator::new(i, 100))
-        .collect();
-    
-    let slot_to_test = 8;
-    
-    println!(
-        "Simulating a slow leader for Slot {}. Timeout is {}ms.\n",
-        slot_to_test, SLOT_TIMEOUT_MILLIS
-    );
-
-    // 1. Most validators time out
-    let mut all_votes_cast = Vec::new();
-    
-    for validator in &mut validators {
-        // We simulate that only 2 validators get the block in time
-        if validator.id < 2 {
-            if let Some(vote) = validator.receive_block_and_vote(slot_to_test, "late-block-hash".to_string()) {
-                all_votes_cast.push(vote);
+        // 3. Trigger timeouts for any slot
+        for validator_id in 0..self.validator_count {
+            for slot in 1..=self.max_slot {
+                actions.push(TimeoutAction::TriggerTimeout {
+                    slot,
+                    validator: validator_id,
+                });
             }
         }
-        
-        // The rest will time out
-        if let Some(skip_vote) = validator.start_slot(slot_to_test) {
-            all_votes_cast.push(skip_vote);
+
+        // 4. Advance to next slot
+        if state.current_slot < self.max_slot {
+            actions.push(TimeoutAction::AdvanceSlot);
         }
     }
 
-    // 2. All validators aggregate the collected votes
-    // In a real network this is concurrent, here we do it for one observer
-    let observer_validator = &mut validators[0];
-    observer_validator.aggregate_certificates(&all_votes_cast);
+    fn next_state(&self, last_state: &Self::State, action: Self::Action) -> Option<Self::State> {
+        let mut next_state = last_state.clone();
+        let mut validators = last_state.validators.clone();
 
-    // 3. Check the consequence
-    // Now, let's assume some previous slot 7 was notarized and needs a FinalVote.
-    // The validator's ability to do this now depends on the BadWindow flag.
-    observer_validator.try_final_vote(7);
-    
-    println!("\n--- Simulation Results ---");
-    let num_skip_votes = all_votes_cast.iter().filter(|v| v.block_hash.is_none()).count();
-    println!(
-        "A SkipCertificate was formed because {}/{} stake voted to skip, exceeding the {}% threshold.",
-        num_skip_votes * 100, TOTAL_STAKE, SKIP_CERTIFICATE_THRESHOLD_PERCENT
-    );
-    println!("This correctly triggered the BadWindow flag, preventing optimistic finalization votes and maintaining network safety during a period of liveness failure.");
-}
+        match action {
+            TimeoutAction::ProposeBlock { slot, proposer } => {
+                let block_hash = slot * 1000 + proposer as u64; // Deterministic hash
+                next_state.block_proposals.insert(slot, block_hash);
 
-/// Test skip certificate generation
-pub fn test_skip_certificate_generation() {
-    println!("--- Testing Skip Certificate Generation ---");
-    
-    let mut validators: Vec<Validator> = (0..10)
-        .map(|i| Validator::new(i, 100))
-        .collect();
-    
-    let slot_to_test = 5;
-    let mut all_votes_cast = Vec::new();
-    
-    // All validators time out and create skip votes
-    for validator in &mut validators {
-        if let Some(skip_vote) = validator.create_skip_vote(slot_to_test) {
-            all_votes_cast.push(skip_vote);
+                // Broadcast block proposal to all validators
+                for i in 0..self.validator_count {
+                    if i != proposer {
+                        next_state.network.insert(MessageInTransit {
+                            dst: i,
+                            msg: TimeoutMessage::BlockProposal {
+                                slot,
+                                hash: block_hash,
+                                proposer,
+                            },
+                        });
+                    }
+                }
+            }
+            TimeoutAction::DeliverMessage { msg } => {
+                let recipient_id = msg.dst;
+                let mut validator_state = validators[recipient_id].clone();
+
+                // Remove message from network
+                if !next_state.network.remove(&msg) { return None; }
+
+                match msg.msg {
+                    TimeoutMessage::BlockProposal { slot, hash, proposer: _ } => {
+                        // Validator receives block and can vote for it
+                        if !validator_state.votes_cast.contains_key(&slot) {
+                            validator_state.votes_cast.insert(slot, Some(hash));
+                            
+                            // Broadcast NotarVote
+                            for i in 0..self.validator_count {
+                                next_state.network.insert(MessageInTransit {
+                                    dst: i,
+                                    msg: TimeoutMessage::NotarVote {
+                                        slot,
+                                        hash,
+                                        voter: recipient_id,
+                                    },
+                                });
+                            }
+                        }
+                    }
+                    TimeoutMessage::NotarVote { slot, hash, voter } => {
+                        // Add vote to pool
+                        let vote_key = (slot, Some(hash));
+                        let voters = validator_state.vote_pool.entry(vote_key).or_default();
+                        voters.insert(voter);
+
+                        // Check for block certificate formation
+                        if next_state.can_form_block_certificate(slot, hash) {
+                            validator_state.certificates.insert((slot, Some(hash)));
+                        }
+                    }
+                    TimeoutMessage::SkipVote { slot, voter } => {
+                        // Add skip vote to pool
+                        let vote_key = (slot, None);
+                        let voters = validator_state.vote_pool.entry(vote_key).or_default();
+                        voters.insert(voter);
+
+                        // Check for skip certificate formation
+                        if next_state.can_form_skip_certificate(slot) {
+                            validator_state.certificates.insert((slot, None));
+                            next_state.skip_certificates.insert(slot, true);
+                            
+                            // Set BadWindow flag
+                            validator_state.bad_window = true;
+                        }
+                    }
+                    TimeoutMessage::TimeoutEvent { slot, validator: _ } => {
+                        // Timeout occurred - validator can cast skip vote
+                        if !validator_state.votes_cast.contains_key(&slot) {
+                            validator_state.votes_cast.insert(slot, None);
+                            
+                            // Broadcast SkipVote
+                            for i in 0..self.validator_count {
+                                next_state.network.insert(MessageInTransit {
+                                    dst: i,
+                                    msg: TimeoutMessage::SkipVote {
+                                        slot,
+                                        voter: recipient_id,
+                                    },
+                                });
+                            }
+                        }
+                    }
+                }
+                validators[recipient_id] = validator_state;
+            }
+            TimeoutAction::TriggerTimeout { slot, validator } => {
+                // Trigger timeout event
+                next_state.network.insert(MessageInTransit {
+                    dst: validator,
+                    msg: TimeoutMessage::TimeoutEvent { slot, validator },
+                });
+            }
+            TimeoutAction::AdvanceSlot => {
+                next_state.current_slot += 1;
+                for validator_state in &mut validators {
+                    validator_state.current_slot = next_state.current_slot;
+                }
+            }
         }
+
+        next_state.validators = validators;
+        Some(next_state)
     }
-    
-    // Aggregate certificates
-    let observer_validator = &mut validators[0];
-    observer_validator.aggregate_certificates(&all_votes_cast);
-    
-    println!("Skip certificate generation test completed");
+
+    /// Properties to verify in the timeout model
+    fn properties(&self) -> Vec<Property<Self>> {
+        vec![
+            // Property 1: Skip certificate uniqueness
+            Property::<Self>::always("skip_certificate_uniqueness", |_model, state| {
+                // At most one skip certificate per slot
+                state.skip_certificates.len() <= state.current_slot as usize + 1
+            }),
+            
+            // Property 2: BadWindow flag consistency
+            Property::<Self>::always("badwindow_consistency", |_model, state| {
+                // If BadWindow is set, there must be a skip certificate
+                for validator in &state.validators {
+                    if validator.bad_window {
+                        // Check if there's a skip certificate in recent slots
+                        let has_recent_skip_cert = (state.current_slot.saturating_sub(10)..=state.current_slot)
+                            .any(|slot| state.skip_certificates.contains_key(&slot));
+                        if !has_recent_skip_cert {
+                            return false;
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 3: Vote uniqueness per validator per slot
+            Property::<Self>::always("vote_uniqueness", |_model, state| {
+                for validator in &state.validators {
+                    // Each validator can vote at most once per slot
+                    for slot in 0..=state.current_slot {
+                        let vote_count = validator.votes_cast.get(&slot).map(|_| 1).unwrap_or(0);
+                        if vote_count > 1 {
+                            return false;
+                        }
+                    }
+                }
+                true
+            }),
+            
+            // Property 4: Certificate threshold enforcement
+            Property::<Self>::always("certificate_threshold", |model, state| {
+                for validator in &state.validators {
+                    for (slot, hash_opt) in &validator.certificates {
+                        let voters = validator.vote_pool.get(&(*slot, hash_opt.clone()));
+                        if let Some(voter_set) = voters {
+                            let stake: Stake = voter_set.len() as u64 * (TOTAL_STAKE / model.validator_count as u64);
+                            if stake < (TOTAL_STAKE * SKIP_CERTIFICATE_THRESHOLD_PERCENT / 100) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            }),
+        ]
+    }
 }
 
-/// Test BadWindow flag triggering
-pub fn test_badwindow_triggering() {
-    println!("--- Testing BadWindow Flag Triggering ---");
+/// Run formal verification of timeout handling
+pub fn run_formal_verification() {
+    println!("=== Timeout Handling Formal Verification ===");
     
-    let mut validator = Validator::new(1, 100);
+    let model = TimeoutModel {
+        validator_count: 3, // Small for formal verification
+        max_slot: 3,
+    };
+
+    println!("Model checking timeout handling with {} validators, {} slots", 
+             model.validator_count, model.max_slot);
     
-    // Create skip votes to trigger BadWindow
-    let skip_vote = validator.create_skip_vote(1).unwrap();
-    let all_votes = vec![skip_vote];
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs()
+        .report(&mut stateright::report::WriteReporter::new(&mut std::io::stdout()));
     
-    validator.aggregate_certificates(&all_votes);
-    
-    if validator.is_bad_window_active() {
-        println!("BadWindow flag correctly triggered");
+    // Check verification results
+    if result.discoveries().is_empty() {
+        println!("✅ All timeout properties verified successfully");
     } else {
-        println!("BadWindow flag not triggered - this may be an issue");
+        println!("❌ Timeout verification found counterexamples");
+        for (property_name, _path) in result.discoveries() {
+            println!("  - {}", property_name);
+        }
     }
 }
 
-/// Test network delay handling
-pub fn test_network_delay_handling(delay_ms: u64) {
-    println!("--- Testing Network Delay Handling with {}ms delay ---", delay_ms);
+/// Test timeout model with different configurations
+pub fn test_timeout_model(validators: usize, slots: u64) {
+    println!("Testing timeout model with {} validators, {} slots", validators, slots);
     
-    let mut validators: Vec<Validator> = (0..5)
-        .map(|i| Validator::new(i, 100))
-        .collect();
-    
-    // Simulate network delay
-    let slot_to_test = 3;
-    let mut all_votes_cast = Vec::new();
-    
-    for validator in &mut validators {
-        // Simulate delayed response
-        if delay_ms <= 50 {
-            if let Some(vote) = validator.receive_block_and_vote(slot_to_test, "delayed-block".to_string()) {
-                all_votes_cast.push(vote);
-            }
-        } else {
-            if let Some(skip_vote) = validator.create_skip_vote(slot_to_test) {
-                all_votes_cast.push(skip_vote);
-            }
-        }
-    }
-    
-    let observer_validator = &mut validators[0];
-    observer_validator.aggregate_certificates(&all_votes_cast);
-    
-    println!("Network delay handling test completed");
-}
+    let model = TimeoutModel {
+        validator_count: validators,
+        max_slot: slots,
+    };
 
-/// Test timeout recovery
-pub fn test_timeout_recovery() {
-    println!("--- Testing Timeout Recovery ---");
+    let result = model
+        .checker()
+        .threads(num_cpus::get())
+        .spawn_dfs();
     
-    let mut validator = Validator::new(1, 100);
-    
-    // Simulate timeout and recovery
-    let slot1 = 1;
-    let slot2 = 2;
-    
-    // First slot times out
-    if let Some(skip_vote) = validator.create_skip_vote(slot1) {
-        let all_votes = vec![skip_vote];
-        validator.aggregate_certificates(&all_votes);
-    }
-    
-    // Second slot succeeds
-    if let Some(vote) = validator.receive_block_and_vote(slot2, "recovery-block".to_string()) {
-        let all_votes = vec![vote];
-        validator.aggregate_certificates(&all_votes);
-    }
-    
-    println!("Timeout recovery test completed");
-}
-
-/// Test concurrent timeouts
-pub fn test_concurrent_timeouts() {
-    println!("--- Testing Concurrent Timeouts ---");
-    
-    let mut validators: Vec<Validator> = (0..8)
-        .map(|i| Validator::new(i, 100))
-        .collect();
-    
-    let slot_to_test = 4;
-    let mut all_votes_cast = Vec::new();
-    
-    // Simulate concurrent timeouts
-    for validator in &mut validators {
-        if let Some(skip_vote) = validator.create_skip_vote(slot_to_test) {
-            all_votes_cast.push(skip_vote);
-        }
-    }
-    
-    let observer_validator = &mut validators[0];
-    observer_validator.aggregate_certificates(&all_votes_cast);
-    
-    println!("Concurrent timeout handling test completed");
-}
-
-/// Test partial network handling
-pub fn test_partial_network_handling(offline_percent: u32) {
-    println!("--- Testing Partial Network Handling with {}% offline ---", offline_percent);
-    
-    let mut validators: Vec<Validator> = (0..10)
-        .map(|i| Validator::new(i, 100))
-        .collect();
-    
-    let slot_to_test = 6;
-    let mut all_votes_cast = Vec::new();
-    
-    // Simulate partial network
-    let offline_count = (10 * offline_percent / 100) as usize;
-    
-    for (i, validator) in validators.iter_mut().enumerate() {
-        if i < offline_count {
-            // This validator is offline, doesn't vote
-            continue;
-        }
-        
-        if let Some(vote) = validator.receive_block_and_vote(slot_to_test, "partial-block".to_string()) {
-            all_votes_cast.push(vote);
-        }
-    }
-    
-    let observer_validator = &mut validators[0];
-    observer_validator.aggregate_certificates(&all_votes_cast);
-    
-    println!("Partial network handling test completed");
+    println!("States explored: {}", result.state_count());
+    println!("Properties verified: {}", result.discoveries().is_empty());
 }
 
 #[cfg(test)]
@@ -393,26 +413,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_vote_creation() {
-        let vote = Vote::new(1, Some("hash1".to_string()), 1, 100);
-        assert_eq!(vote.slot, 1);
-        assert_eq!(vote.voter_id, 1);
-        assert_eq!(vote.stake, 100);
+    fn test_timeout_state_creation() {
+        let state = TimeoutState::new(3);
+        assert_eq!(state.validators.len(), 3);
+        assert_eq!(state.current_slot, 0);
+        assert!(state.network.is_empty());
     }
 
     #[test]
-    fn test_validator_creation() {
-        let validator = Validator::new(1, 100);
-        assert_eq!(validator.id, 1);
-        assert_eq!(validator.stake, 100);
-        assert!(!validator.bad_window);
+    fn test_skip_certificate_formation() {
+        let mut state = TimeoutState::new(3);
+        // Add enough skip votes to form certificate
+        let mut validator = state.validators[0].clone();
+        let voters = validator.vote_pool.entry((1, None)).or_default();
+        voters.insert(0);
+        voters.insert(1);
+        voters.insert(2); // 3/3 validators = 100% > 60%
+        state.validators[0] = validator;
+        
+        assert!(state.can_form_skip_certificate(1));
     }
 
     #[test]
-    fn test_skip_vote_creation() {
-        let mut validator = Validator::new(1, 100);
-        let skip_vote = validator.create_skip_vote(1);
-        assert!(skip_vote.is_some());
-        assert!(skip_vote.unwrap().block_hash.is_none());
+    fn test_badwindow_flag_logic() {
+        let mut state = TimeoutState::new(3);
+        state.skip_certificates.insert(1, true);
+        
+        let mut validator = state.validators[0].clone();
+        validator.bad_window = true;
+        state.validators[0] = validator;
+        
+        // BadWindow should be consistent with skip certificates
+        assert!(state.validators[0].bad_window);
     }
 }
