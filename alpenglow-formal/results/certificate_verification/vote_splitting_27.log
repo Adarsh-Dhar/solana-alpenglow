@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/certificate_verification --attack-type vote_splitting --seed 27`
 Running certificate verification: vote_splitting attack, 20% adversary, seed 27
 --- Alpenglow Certificate Uniqueness Simulation ---

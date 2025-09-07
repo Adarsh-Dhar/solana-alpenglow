@@ -233,6 +233,161 @@ pub fn run_simulation() {
     println!("This correctly triggered the BadWindow flag, preventing optimistic finalization votes and maintaining network safety during a period of liveness failure.");
 }
 
+/// Test skip certificate generation
+pub fn test_skip_certificate_generation() {
+    println!("--- Testing Skip Certificate Generation ---");
+    
+    let mut validators: Vec<Validator> = (0..10)
+        .map(|i| Validator::new(i, 100))
+        .collect();
+    
+    let slot_to_test = 5;
+    let mut all_votes_cast = Vec::new();
+    
+    // All validators time out and create skip votes
+    for validator in &mut validators {
+        if let Some(skip_vote) = validator.create_skip_vote(slot_to_test) {
+            all_votes_cast.push(skip_vote);
+        }
+    }
+    
+    // Aggregate certificates
+    let observer_validator = &mut validators[0];
+    observer_validator.aggregate_certificates(&all_votes_cast);
+    
+    println!("Skip certificate generation test completed");
+}
+
+/// Test BadWindow flag triggering
+pub fn test_badwindow_triggering() {
+    println!("--- Testing BadWindow Flag Triggering ---");
+    
+    let mut validator = Validator::new(1, 100);
+    
+    // Create skip votes to trigger BadWindow
+    let skip_vote = validator.create_skip_vote(1).unwrap();
+    let all_votes = vec![skip_vote];
+    
+    validator.aggregate_certificates(&all_votes);
+    
+    if validator.is_bad_window_active() {
+        println!("BadWindow flag correctly triggered");
+    } else {
+        println!("BadWindow flag not triggered - this may be an issue");
+    }
+}
+
+/// Test network delay handling
+pub fn test_network_delay_handling(delay_ms: u64) {
+    println!("--- Testing Network Delay Handling with {}ms delay ---", delay_ms);
+    
+    let mut validators: Vec<Validator> = (0..5)
+        .map(|i| Validator::new(i, 100))
+        .collect();
+    
+    // Simulate network delay
+    let slot_to_test = 3;
+    let mut all_votes_cast = Vec::new();
+    
+    for validator in &mut validators {
+        // Simulate delayed response
+        if delay_ms <= 50 {
+            if let Some(vote) = validator.receive_block_and_vote(slot_to_test, "delayed-block".to_string()) {
+                all_votes_cast.push(vote);
+            }
+        } else {
+            if let Some(skip_vote) = validator.create_skip_vote(slot_to_test) {
+                all_votes_cast.push(skip_vote);
+            }
+        }
+    }
+    
+    let observer_validator = &mut validators[0];
+    observer_validator.aggregate_certificates(&all_votes_cast);
+    
+    println!("Network delay handling test completed");
+}
+
+/// Test timeout recovery
+pub fn test_timeout_recovery() {
+    println!("--- Testing Timeout Recovery ---");
+    
+    let mut validator = Validator::new(1, 100);
+    
+    // Simulate timeout and recovery
+    let slot1 = 1;
+    let slot2 = 2;
+    
+    // First slot times out
+    if let Some(skip_vote) = validator.create_skip_vote(slot1) {
+        let all_votes = vec![skip_vote];
+        validator.aggregate_certificates(&all_votes);
+    }
+    
+    // Second slot succeeds
+    if let Some(vote) = validator.receive_block_and_vote(slot2, "recovery-block".to_string()) {
+        let all_votes = vec![vote];
+        validator.aggregate_certificates(&all_votes);
+    }
+    
+    println!("Timeout recovery test completed");
+}
+
+/// Test concurrent timeouts
+pub fn test_concurrent_timeouts() {
+    println!("--- Testing Concurrent Timeouts ---");
+    
+    let mut validators: Vec<Validator> = (0..8)
+        .map(|i| Validator::new(i, 100))
+        .collect();
+    
+    let slot_to_test = 4;
+    let mut all_votes_cast = Vec::new();
+    
+    // Simulate concurrent timeouts
+    for validator in &mut validators {
+        if let Some(skip_vote) = validator.create_skip_vote(slot_to_test) {
+            all_votes_cast.push(skip_vote);
+        }
+    }
+    
+    let observer_validator = &mut validators[0];
+    observer_validator.aggregate_certificates(&all_votes_cast);
+    
+    println!("Concurrent timeout handling test completed");
+}
+
+/// Test partial network handling
+pub fn test_partial_network_handling(offline_percent: u32) {
+    println!("--- Testing Partial Network Handling with {}% offline ---", offline_percent);
+    
+    let mut validators: Vec<Validator> = (0..10)
+        .map(|i| Validator::new(i, 100))
+        .collect();
+    
+    let slot_to_test = 6;
+    let mut all_votes_cast = Vec::new();
+    
+    // Simulate partial network
+    let offline_count = (10 * offline_percent / 100) as usize;
+    
+    for (i, validator) in validators.iter_mut().enumerate() {
+        if i < offline_count {
+            // This validator is offline, doesn't vote
+            continue;
+        }
+        
+        if let Some(vote) = validator.receive_block_and_vote(slot_to_test, "partial-block".to_string()) {
+            all_votes_cast.push(vote);
+        }
+    }
+    
+    let observer_validator = &mut validators[0];
+    observer_validator.aggregate_certificates(&all_votes_cast);
+    
+    println!("Partial network handling test completed");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

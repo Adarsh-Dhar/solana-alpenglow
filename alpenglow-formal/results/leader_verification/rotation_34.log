@@ -10,7 +10,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 2 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 3 | Leader: Val-B ---
+--- Slot 3 | Leader: Val-D ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 4 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
@@ -24,11 +24,11 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 9 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 10 | Leader: Val-D ---
+--- Slot 10 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 11 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 12 | Leader: Val-B ---
+--- Slot 12 | Leader: Val-D ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 13 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
@@ -45,13 +45,13 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 18 | Leader: Val-C ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 19 | Leader: Val-D ---
+--- Slot 19 | Leader: Val-B ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 20 | Leader: Val-B ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 21 | Leader: Val-B ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 22 | Leader: Val-B ---
+--- Slot 22 | Leader: Val-D ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 23 | Leader: Val-A ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
@@ -64,13 +64,13 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 27 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 28 | Leader: Val-D ---
+--- Slot 28 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 29 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 30 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 31 | Leader: Val-B ---
+--- Slot 31 | Leader: Val-D ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 32 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
@@ -82,7 +82,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 36 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 37 | Leader: Val-D ---
+--- Slot 37 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 38 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.

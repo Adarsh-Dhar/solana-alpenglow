@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/bounded_finalization_test --test-type partial_network --offline-percent 30 --seed 28`
+Running bounded finalization test: fast path, 80% stake, partial_network test, 20ms delay, 30% offline, seed 28
+Partial network finalization successful
+Finalization time: 1

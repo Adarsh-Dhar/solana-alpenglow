@@ -108,11 +108,11 @@ else
     echo "❌ Certificate uniqueness compromised with 20% adversary stake ($adversary_20_rate%)"
 fi
 
-# Check if all attack scenarios failed
+# Check if all attack scenarios failed (which is good for security)
 all_attacks_failed=true
 for attack_type in equivocation vote_splitting nothing_at_stake; do
     success_count=$(grep "^$attack_type," certificate_results.csv | grep -c "SUCCESS" || true)
-    if [ $success_count -lt 45 ]; then  # Allow for some false positives
+    if [ $success_count -gt 5 ]; then  # Allow for some false positives, but attacks should mostly fail
         all_attacks_failed=false
         break
     fi

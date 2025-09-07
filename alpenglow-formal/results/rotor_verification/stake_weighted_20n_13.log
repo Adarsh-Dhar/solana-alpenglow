@@ -1,19 +1,15 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/rotor_verification --test-type stake_weighted --nodes 20 --seed 13`
 Running rotor verification: stake_weighted test, 20 nodes, fanout 3, 20% fault, mesh topology, seed 13
---- Alpenglow Rotor Sampling Simulation ---
-Sampling nodes for message dissemination...
-Slot 0: Source 0 selected nodes: [7, 9, 2]
-Slot 1: Source 1 selected nodes: [9, 2, 0]
-Slot 2: Source 2 selected nodes: [0, 5]
-Slot 3: Source 3 selected nodes: [0, 5]
-Slot 4: Source 4 selected nodes: [5, 3]
-
-Simulating node 3 going offline...
-Slot 5: Source 5 selected nodes: [0]
-Slot 6: Source 6 selected nodes: [0]
-Slot 7: Source 7 selected nodes: [0, 6]
-
---- Simulation Complete ---
-The rotor sampling strategy ensures efficient message dissemination while maintaining redundancy.
-Rotor sampling successful
+--- Testing Stake-Weighted Selection with 20 nodes ---
+Slot 0: Source 0 selected nodes: [16, 19, 8]
+Slot 1: Source 1 selected nodes: [19, 8, 3]
+Slot 2: Source 2 selected nodes: [8, 3, 12]
+Slot 3: Source 3 selected nodes: [12, 9]
+Slot 4: Source 4 selected nodes: [12, 9]
+Slot 5: Source 5 selected nodes: [9, 1]
+Slot 6: Source 6 selected nodes: [9, 1]
+Slot 7: Source 7 selected nodes: [1, 9, 14]
+Slot 8: Source 8 selected nodes: [9, 14, 4]
+Slot 9: Source 9 selected nodes: [14, 4, 7]
+Stake-weighted selection successful

@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --test-type partition --seed 28`
 Running resilience verification: partition test, 20% byzantine, 20% offline, seed 28
 

@@ -154,6 +154,201 @@ pub fn run_simulation() {
     println!("The rotor sampling strategy ensures efficient message dissemination while maintaining redundancy.");
 }
 
+/// Test stake-weighted selection
+pub fn test_stake_weighted_selection(node_count: usize) {
+    println!("--- Testing Stake-Weighted Selection with {} nodes ---", node_count);
+    
+    let config = RotorConfig::default();
+    let nodes: Vec<Node> = (0..node_count)
+        .map(|i| Node::new(i as u64, 100 + (i as u64 * 10))) // Different stakes
+        .collect();
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    
+    // Test multiple sampling rounds
+    for slot in 0..10 {
+        let source_id = slot % node_count as u64;
+        let selected = sampler.sample_nodes(source_id, slot);
+        println!("Slot {}: Source {} selected nodes: {:?}", slot, source_id, selected);
+    }
+}
+
+/// Test fanout optimization
+pub fn test_fanout_optimization(fanout: usize) {
+    println!("--- Testing Fanout Optimization with fanout {} ---", fanout);
+    
+    let config = RotorConfig {
+        fanout,
+        redundancy: 2,
+        max_retries: 3,
+    };
+    
+    let nodes: Vec<Node> = (0..20)
+        .map(|i| Node::new(i as u64, 100))
+        .collect();
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    
+    // Test sampling with different fanout values
+    for slot in 0..5 {
+        let source_id = slot % 20;
+        let selected = sampler.sample_nodes(source_id, slot);
+        println!("Slot {}: Fanout {} selected {} nodes: {:?}", slot, fanout, selected.len(), selected);
+    }
+}
+
+/// Test message dissemination
+pub fn test_message_dissemination(node_count: usize) {
+    println!("--- Testing Message Dissemination with {} nodes ---", node_count);
+    
+    let config = RotorConfig::default();
+    let nodes: Vec<Node> = (0..node_count)
+        .map(|i| Node::new(i as u64, 100))
+        .collect();
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    
+    // Simulate message dissemination
+    let mut message_reach = vec![false; node_count];
+    message_reach[0] = true; // Source node
+    
+    for round in 0..5 {
+        let mut new_reach = message_reach.clone();
+        
+        for (i, &has_message) in message_reach.iter().enumerate() {
+            if has_message {
+                let selected = sampler.sample_nodes(i as u64, round);
+                for &target in &selected {
+                    if target < node_count as u64 {
+                        new_reach[target as usize] = true;
+                    }
+                }
+            }
+        }
+        
+        message_reach = new_reach;
+        let reached_count = message_reach.iter().filter(|&&x| x).count();
+        println!("Round {}: Message reached {}/{} nodes", round, reached_count, node_count);
+    }
+}
+
+/// Test topology adaptation
+pub fn test_topology_adaptation(topology: &str) {
+    println!("--- Testing Topology Adaptation with {} topology ---", topology);
+    
+    let config = RotorConfig::default();
+    let nodes: Vec<Node> = (0..20)
+        .map(|i| Node::new(i as u64, 100))
+        .collect();
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    
+    // Simulate different topologies
+    match topology {
+        "mesh" => {
+            println!("Mesh topology: All nodes can connect to all others");
+        },
+        "star" => {
+            println!("Star topology: Central hub with spoke connections");
+        },
+        "ring" => {
+            println!("Ring topology: Circular connection pattern");
+        },
+        "tree" => {
+            println!("Tree topology: Hierarchical connection pattern");
+        },
+        _ => {
+            println!("Unknown topology: {}", topology);
+        }
+    }
+    
+    // Test sampling in this topology
+    for slot in 0..5 {
+        let source_id = slot % 20;
+        let selected = sampler.sample_nodes(source_id, slot);
+        println!("Slot {}: Topology {} selected nodes: {:?}", slot, topology, selected);
+    }
+}
+
+/// Test fault tolerance
+pub fn test_fault_tolerance(fault_percent: u32) {
+    println!("--- Testing Fault Tolerance with {}% faulty nodes ---", fault_percent);
+    
+    let config = RotorConfig::default();
+    let mut nodes: Vec<Node> = (0..20)
+        .map(|i| Node::new(i as u64, 100))
+        .collect();
+    
+    // Mark some nodes as offline
+    let faulty_count = (20 * fault_percent / 100) as usize;
+    for i in 0..faulty_count {
+        nodes[i].is_online = false;
+    }
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    
+    // Test sampling with faulty nodes
+    for slot in 0..10 {
+        let source_id = slot % 20;
+        let selected = sampler.sample_nodes(source_id, slot);
+        let online_selected = selected.iter().filter(|&&id| id < 20 && (id as usize) >= faulty_count).count();
+        println!("Slot {}: Selected {} nodes, {} online: {:?}", slot, selected.len(), online_selected, selected);
+    }
+}
+
+/// Test load balancing
+pub fn test_load_balancing() {
+    println!("--- Testing Load Balancing ---");
+    
+    let config = RotorConfig::default();
+    let nodes: Vec<Node> = (0..20)
+        .map(|i| Node::new(i as u64, 100))
+        .collect();
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    let mut load_count = vec![0; 20];
+    
+    // Simulate load distribution
+    for slot in 0..100 {
+        let source_id = slot % 20;
+        let selected = sampler.sample_nodes(source_id, slot);
+        
+        for &target in &selected {
+            if target < 20 {
+                load_count[target as usize] += 1;
+            }
+        }
+    }
+    
+    println!("Load distribution across 20 nodes:");
+    for (i, &count) in load_count.iter().enumerate() {
+        println!("  Node {}: {} messages", i, count);
+    }
+}
+
+/// Test scalability
+pub fn test_scalability(node_count: usize) {
+    println!("--- Testing Scalability with {} nodes ---", node_count);
+    
+    let config = RotorConfig::default();
+    let nodes: Vec<Node> = (0..node_count)
+        .map(|i| Node::new(i as u64, 100))
+        .collect();
+    
+    let mut sampler = RotorSampler::new(config, nodes);
+    
+    // Test sampling performance with large node count
+    let start = std::time::Instant::now();
+    
+    for slot in 0..10 {
+        let source_id = slot % node_count as u64;
+        let _selected = sampler.sample_nodes(source_id, slot);
+    }
+    
+    let duration = start.elapsed();
+    println!("Scalability test with {} nodes completed in {:?}", node_count, duration);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/bounded_finalization_test --test-type network_delay --delay 10 --seed 5`
+Running bounded finalization test: fast path, 80% stake, network_delay test, 10ms delay, 20% offline, seed 5
+Network delay handling successful
+Finalization time: 1

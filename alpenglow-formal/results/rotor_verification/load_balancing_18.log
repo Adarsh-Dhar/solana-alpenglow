@@ -1,19 +1,26 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/rotor_verification --test-type load_balancing --seed 18`
 Running rotor verification: load_balancing test, 20 nodes, fanout 3, 20% fault, mesh topology, seed 18
---- Alpenglow Rotor Sampling Simulation ---
-Sampling nodes for message dissemination...
-Slot 0: Source 0 selected nodes: [7, 9, 2]
-Slot 1: Source 1 selected nodes: [9, 2, 0]
-Slot 2: Source 2 selected nodes: [0, 5]
-Slot 3: Source 3 selected nodes: [0, 5]
-Slot 4: Source 4 selected nodes: [5, 3]
-
-Simulating node 3 going offline...
-Slot 5: Source 5 selected nodes: [0]
-Slot 6: Source 6 selected nodes: [0]
-Slot 7: Source 7 selected nodes: [0, 6]
-
---- Simulation Complete ---
-The rotor sampling strategy ensures efficient message dissemination while maintaining redundancy.
-Rotor sampling successful
+--- Testing Load Balancing ---
+Load distribution across 20 nodes:
+  Node 0: 13 messages
+  Node 1: 8 messages
+  Node 2: 8 messages
+  Node 3: 6 messages
+  Node 4: 18 messages
+  Node 5: 24 messages
+  Node 6: 26 messages
+  Node 7: 4 messages
+  Node 8: 12 messages
+  Node 9: 9 messages
+  Node 10: 23 messages
+  Node 11: 15 messages
+  Node 12: 28 messages
+  Node 13: 4 messages
+  Node 14: 10 messages
+  Node 15: 13 messages
+  Node 16: 0 messages
+  Node 17: 14 messages
+  Node 18: 8 messages
+  Node 19: 14 messages
+Load balancing successful

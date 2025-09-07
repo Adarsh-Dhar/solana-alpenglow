@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.10s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --byzantine-stake 10 --test-type safety --seed 30`
 Running resilience verification: safety test, 10% byzantine, 20% offline, seed 30
 

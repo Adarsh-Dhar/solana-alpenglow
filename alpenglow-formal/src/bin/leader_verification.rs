@@ -27,6 +27,34 @@ fn main() {
     
     std::env::set_var("RUST_SEED", seed.to_string());
     
-    leader::run_simulation();
-    println!("Leader rotation successful");
+    match test_type {
+        "rotation" => {
+            leader::run_simulation();
+            println!("Leader rotation successful");
+        },
+        "window" => {
+            leader::test_window_management(window_size);
+            println!("Window management successful");
+        },
+        "badwindow" => {
+            leader::test_badwindow_management();
+            println!("BadWindow management successful");
+        },
+        "failure" => {
+            leader::test_failure_handling(failure_rate);
+            println!("Failure handling successful");
+        },
+        "stake_weighted" => {
+            leader::test_stake_weighted_selection();
+            println!("Stake-weighted selection successful");
+        },
+        "window_sliding" => {
+            leader::test_window_sliding();
+            println!("Window sliding successful");
+        },
+        _ => {
+            println!("Unknown test type: {}", test_type);
+            std::process::exit(1);
+        }
+    }
 }

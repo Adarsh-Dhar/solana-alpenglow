@@ -26,7 +26,7 @@ fn main() {
     
     let mut successful_simulations = 0;
     
-    for i in 0..simulations {
+    for _i in 0..simulations {
         let result = liveness::run_scenario(80, 10); // 80% responsive stake
         if result > 0 {
             successful_simulations += 1;

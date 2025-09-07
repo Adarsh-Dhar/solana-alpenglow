@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.05s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/rotor_verification --test-type basic --nodes 20 --seed 19`
 Running rotor verification: basic test, 20 nodes, fanout 3, 20% fault, mesh topology, seed 19
 --- Alpenglow Rotor Sampling Simulation ---

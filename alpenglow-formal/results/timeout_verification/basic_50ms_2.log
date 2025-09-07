@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.05s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/timeout_verification --test-type basic --timeout 50 --seed 2`
 Running timeout verification: basic test, 50ms timeout, 20ms delay, 20% offline, seed 2
 --- Alpenglow Timeout & Skip Certificate Simulation ---

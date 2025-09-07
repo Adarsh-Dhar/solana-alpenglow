@@ -1,19 +1,10 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/rotor_verification --test-type fanout --fanout 5 --seed 22`
 Running rotor verification: fanout test, 20 nodes, fanout 5, 20% fault, mesh topology, seed 22
---- Alpenglow Rotor Sampling Simulation ---
-Sampling nodes for message dissemination...
-Slot 0: Source 0 selected nodes: [7, 9, 2]
-Slot 1: Source 1 selected nodes: [9, 2, 0]
-Slot 2: Source 2 selected nodes: [0, 5]
-Slot 3: Source 3 selected nodes: [0, 5]
-Slot 4: Source 4 selected nodes: [5, 3]
-
-Simulating node 3 going offline...
-Slot 5: Source 5 selected nodes: [0]
-Slot 6: Source 6 selected nodes: [0]
-Slot 7: Source 7 selected nodes: [0, 6]
-
---- Simulation Complete ---
-The rotor sampling strategy ensures efficient message dissemination while maintaining redundancy.
-Rotor sampling successful
+--- Testing Fanout Optimization with fanout 5 ---
+Slot 0: Fanout 5 selected 3 nodes: [14, 19, 5]
+Slot 1: Fanout 5 selected 2 nodes: [19, 5]
+Slot 2: Fanout 5 selected 3 nodes: [5, 1, 10]
+Slot 3: Fanout 5 selected 3 nodes: [1, 10, 6]
+Slot 4: Fanout 5 selected 2 nodes: [10, 6]
+Fanout optimization successful

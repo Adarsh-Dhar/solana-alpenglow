@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/certificate_verification --attack-type nothing_at_stake --seed 13`
 Running certificate verification: nothing_at_stake attack, 20% adversary, seed 13
 --- Alpenglow Certificate Uniqueness Simulation ---

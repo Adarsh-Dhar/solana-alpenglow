@@ -1,4 +1,5 @@
-    Finished `release` profile [optimized] target(s) in 0.17s
+   Compiling alpenglow-formal v0.1.0 (/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal)
+    Finished `release` profile [optimized] target(s) in 14.45s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --byzantine-stake 10 --test-type safety --seed 1`
 Running resilience verification: safety test, 10% byzantine, 20% offline, seed 1
 

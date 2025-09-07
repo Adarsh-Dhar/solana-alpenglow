@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.04s
+    Finished `release` profile [optimized] target(s) in 0.06s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/liveness_verification --responsive-stake 50 --seed 40`
 Running liveness verification with 50% responsive stake, seed 40
 

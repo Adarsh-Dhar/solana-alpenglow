@@ -1,4 +1,5 @@
-    Finished `release` profile [optimized] target(s) in 0.19s
+   Compiling alpenglow-formal v0.1.0 (/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal)
+    Finished `release` profile [optimized] target(s) in 1.85s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/rotor_verification --test-type basic --nodes 10 --seed 1`
 Running rotor verification: basic test, 10 nodes, fanout 3, 20% fault, mesh topology, seed 1
 --- Alpenglow Rotor Sampling Simulation ---

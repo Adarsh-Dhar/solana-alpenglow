@@ -30,6 +30,38 @@ fn main() {
     
     std::env::set_var("RUST_SEED", seed.to_string());
     
-    timeout::run_simulation();
-    println!("Timeout handling successful");
+    match test_type {
+        "basic" => {
+            timeout::run_simulation();
+            println!("Timeout handling successful");
+        },
+        "skip_cert" => {
+            timeout::test_skip_certificate_generation();
+            println!("Skip certificate generation successful");
+        },
+        "badwindow" => {
+            timeout::test_badwindow_triggering();
+            println!("BadWindow flag triggered correctly");
+        },
+        "network_delay" => {
+            timeout::test_network_delay_handling(delay);
+            println!("Network delay handling successful");
+        },
+        "recovery" => {
+            timeout::test_timeout_recovery();
+            println!("Timeout recovery successful");
+        },
+        "concurrent" => {
+            timeout::test_concurrent_timeouts();
+            println!("Concurrent timeout handling successful");
+        },
+        "partial_network" => {
+            timeout::test_partial_network_handling(offline_percent);
+            println!("Partial network timeout handling successful");
+        },
+        _ => {
+            println!("Unknown test type: {}", test_type);
+            std::process::exit(1);
+        }
+    }
 }

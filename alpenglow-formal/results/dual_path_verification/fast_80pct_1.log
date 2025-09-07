@@ -1,0 +1,7 @@
+   Compiling alpenglow-formal v0.1.0 (/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal)
+    Finished `release` profile [optimized] target(s) in 3.58s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/dual_path_test --path fast --threshold 80 --stake-percent 80 --seed 1`
+Running dual path test: fast path, 80% threshold, 80% stake, seed 1
+Fast path finalization successful
+Finalization time: 1
+Rounds completed: 1

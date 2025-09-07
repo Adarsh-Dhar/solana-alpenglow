@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.05s
+    Finished `release` profile [optimized] target(s) in 0.47s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/leader_verification --test-type rotation --seed 47`
 Running leader verification: rotation test, window 10, failure rate 20%, seed 47
 --- Alpenglow Leader Window Simulation ---

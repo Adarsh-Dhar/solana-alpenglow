@@ -1,7 +1,6 @@
+use alpenglow_formal::votor::VotorModel;
 use stateright::{report::WriteReporter, *};
 use std::env;
-
-use alpenglow_formal::votor::VotorModel;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -27,9 +26,16 @@ fn main() {
         max_slot: slots,
     };
 
-    model
+    let result = model
         .checker()
         .threads(num_cpus::get())
         .spawn_dfs()
         .report(&mut WriteReporter::new(&mut std::io::stdout()));
+    
+    // Check if safety property was verified
+    if result.discoveries().is_empty() {
+        println!("Property 'safety' is always true");
+    } else {
+        println!("Property 'safety' has counterexamples");
+    }
 }

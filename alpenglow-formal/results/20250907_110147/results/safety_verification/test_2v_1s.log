@@ -1,0 +1,7 @@
+   Compiling alpenglow-formal v0.1.0 (/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal)
+    Finished `release` profile [optimized] target(s) in 3.17s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/safety_verification --validators 2 --slots 1 --seed 12345`
+Running safety verification with 2 validators, 1 slots, seed 12345
+Checking. states=21, unique=17, depth=4
+Done. states=3065, unique=456, depth=21, sec=1
+Property 'safety' is always true

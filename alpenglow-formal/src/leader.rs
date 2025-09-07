@@ -154,6 +154,137 @@ pub fn run_simulation() {
     println!("This state persists until the window has slid far enough past the failure, allowing the system to automatically recover to its high-performance mode.");
 }
 
+/// Test window management functionality
+pub fn test_window_management(window_size: u64) {
+    println!("--- Testing Window Management with size {} ---", window_size);
+    
+    let stakes: HashMap<String, u64> = [
+        ("Val-A".to_string(), 400),
+        ("Val-B".to_string(), 300),
+        ("Val-C".to_string(), 200),
+        ("Val-D".to_string(), 100),
+    ].iter().cloned().collect();
+    
+    let mut validators: Vec<Validator> = stakes
+        .iter()
+        .map(|(id, stake)| Validator::new(id.clone(), *stake))
+        .collect();
+    
+    let observer = &mut validators[0];
+    
+    // Test window management
+    for slot in 0..window_size + 5 {
+        observer.advance_to_slot(slot);
+        let leader = get_leader_for_slot(slot, &stakes);
+        
+        if slot < window_size {
+            println!("Slot {}: Leader {} - Window active", slot, leader);
+        } else {
+            println!("Slot {}: Leader {} - Window expired", slot, leader);
+        }
+    }
+}
+
+/// Test BadWindow flag management
+pub fn test_badwindow_management() {
+    println!("--- Testing BadWindow Flag Management ---");
+    
+    let mut validator = Validator::new("TestVal".to_string(), 100);
+    
+    // Test BadWindow triggering
+    validator.advance_to_slot(10);
+    validator.process_skip_certificate(12); // Failure inside window
+    assert!(validator.is_bad_window_active());
+    
+    // Test BadWindow clearing
+    validator.advance_to_slot(25); // Move past window
+    assert!(!validator.is_bad_window_active());
+    
+    println!("BadWindow management test completed successfully");
+}
+
+/// Test failure handling
+pub fn test_failure_handling(failure_rate: u32) {
+    println!("--- Testing Failure Handling with {}% failure rate ---", failure_rate);
+    
+    let stakes: HashMap<String, u64> = [
+        ("Val-A".to_string(), 400),
+        ("Val-B".to_string(), 300),
+        ("Val-C".to_string(), 200),
+        ("Val-D".to_string(), 100),
+    ].iter().cloned().collect();
+    
+    let mut validators: Vec<Validator> = stakes
+        .iter()
+        .map(|(id, stake)| Validator::new(id.clone(), *stake))
+        .collect();
+    
+    let observer = &mut validators[0];
+    
+    // Simulate failures
+    for slot in 0..20 {
+        observer.advance_to_slot(slot);
+        let leader = get_leader_for_slot(slot, &stakes);
+        
+        // Simulate failure based on rate
+        if (slot as u32) % 100 < failure_rate {
+            println!("Slot {}: Leader {} FAILED", slot, leader);
+            observer.process_skip_certificate(slot);
+        } else {
+            println!("Slot {}: Leader {} SUCCESS", slot, leader);
+        }
+    }
+}
+
+/// Test stake-weighted selection
+pub fn test_stake_weighted_selection() {
+    println!("--- Testing Stake-Weighted Selection ---");
+    
+    let stakes: HashMap<String, u64> = [
+        ("Val-A".to_string(), 400),
+        ("Val-B".to_string(), 300),
+        ("Val-C".to_string(), 200),
+        ("Val-D".to_string(), 100),
+    ].iter().cloned().collect();
+    
+    // Test multiple slots to verify distribution
+    let mut leader_counts: HashMap<String, u32> = HashMap::new();
+    
+    for slot in 0..100 {
+        let leader = get_leader_for_slot(slot, &stakes);
+        *leader_counts.entry(leader).or_insert(0) += 1;
+    }
+    
+    println!("Leader selection distribution over 100 slots:");
+    for (leader, count) in &leader_counts {
+        println!("  {}: {} times", leader, count);
+    }
+}
+
+/// Test window sliding
+pub fn test_window_sliding() {
+    println!("--- Testing Window Sliding ---");
+    
+    let mut validator = Validator::new("TestVal".to_string(), 100);
+    
+    // Test window sliding behavior
+    for slot in 0..30 {
+        validator.advance_to_slot(slot);
+        
+        // Trigger failure at slot 10
+        if slot == 10 {
+            validator.process_skip_certificate(10);
+        }
+        
+        // Check if BadWindow is active
+        if validator.is_bad_window_active() {
+            println!("Slot {}: BadWindow ACTIVE", slot);
+        } else {
+            println!("Slot {}: BadWindow CLEAR", slot);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

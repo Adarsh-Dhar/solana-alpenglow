@@ -33,6 +33,42 @@ fn main() {
     
     std::env::set_var("RUST_SEED", seed.to_string());
     
-    rotor::run_simulation();
-    println!("Rotor sampling successful");
+    match test_type {
+        "basic" => {
+            rotor::run_simulation();
+            println!("Rotor sampling successful");
+        },
+        "stake_weighted" => {
+            rotor::test_stake_weighted_selection(nodes);
+            println!("Stake-weighted selection successful");
+        },
+        "fanout" => {
+            rotor::test_fanout_optimization(fanout);
+            println!("Fanout optimization successful");
+        },
+        "dissemination" => {
+            rotor::test_message_dissemination(nodes);
+            println!("Message dissemination successful");
+        },
+        "topology" => {
+            rotor::test_topology_adaptation(topology);
+            println!("Topology adaptation successful");
+        },
+        "fault_tolerance" => {
+            rotor::test_fault_tolerance(fault_percent);
+            println!("Fault tolerance successful");
+        },
+        "load_balancing" => {
+            rotor::test_load_balancing();
+            println!("Load balancing successful");
+        },
+        "scalability" => {
+            rotor::test_scalability(nodes);
+            println!("Scalability test successful");
+        },
+        _ => {
+            println!("Unknown test type: {}", test_type);
+            std::process::exit(1);
+        }
+    }
 }

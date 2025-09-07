@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --offline-stake 20 --test-type liveness --seed 19`
 Running resilience verification: liveness test, 20% byzantine, 20% offline, seed 19
 

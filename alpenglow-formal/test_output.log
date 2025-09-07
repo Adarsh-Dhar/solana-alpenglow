@@ -1,0 +1,6 @@
+    Finished `release` profile [optimized] target(s) in 0.17s
+     Running `target/release/bounded_finalization_test --path fast --stake-percent 80 --seed 1`
+Running bounded finalization test: fast path, 80% stake, bounded test, 20ms delay, 20% offline, seed 1
+Bounded finalization time verified
+Fast path time: 1
+Slow path time: 2

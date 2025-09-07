@@ -1,95 +1,38 @@
-    Finished `release` profile [optimized] target(s) in 0.54s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/leader_verification --test-type window_sliding --seed 26`
 Running leader verification: window_sliding test, window 10, failure rate 20%, seed 26
---- Alpenglow Leader Window Simulation ---
-Leader window size is 10 slots. A leader will fail at slot 15.
-
---- Slot 0 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 1 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 2 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 3 | Leader: Val-D ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 4 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 5 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 6 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 7 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 8 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 9 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 10 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 11 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 12 | Leader: Val-D ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 13 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 14 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 15 | Leader: Val-A ---
-🔴 LIVENESS FAILURE: Leader Val-A for slot 15 is offline!
- Validator Val-C: Observed SkipCertificate for slot 15.
-🚦 Validator Val-C: The failure is INSIDE the current window (15-24). Setting BadWindow flag to TRUE.
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 16 | Leader: Val-A ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 17 | Leader: Val-C ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 18 | Leader: Val-C ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 19 | Leader: Val-B ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 20 | Leader: Val-B ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 21 | Leader: Val-B ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 22 | Leader: Val-D ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 23 | Leader: Val-A ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 24 | Leader: Val-A ---
-  -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 25 | Leader: Val-A ---
-✅ Validator Val-C: Slot 25. The failure at slot 15 is now outside the window. Clearing BadWindow flag.
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 26 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 27 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 28 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 29 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 30 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 31 | Leader: Val-D ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 32 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 33 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 34 | Leader: Val-A ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 35 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 36 | Leader: Val-C ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 37 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 38 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
---- Slot 39 | Leader: Val-B ---
-  -> State: Normal. Optimistic paths are ENABLED.
-
---- Simulation Complete ---
-The simulation shows how a failure inside the leader window triggers the BadWindow state.
-This state persists until the window has slid far enough past the failure, allowing the system to automatically recover to its high-performance mode.
-Leader rotation successful
+--- Testing Window Sliding ---
+Slot 0: BadWindow CLEAR
+Slot 1: BadWindow CLEAR
+Slot 2: BadWindow CLEAR
+Slot 3: BadWindow CLEAR
+Slot 4: BadWindow CLEAR
+Slot 5: BadWindow CLEAR
+Slot 6: BadWindow CLEAR
+Slot 7: BadWindow CLEAR
+Slot 8: BadWindow CLEAR
+Slot 9: BadWindow CLEAR
+ Validator TestVal: Observed SkipCertificate for slot 10.
+🚦 Validator TestVal: The failure is INSIDE the current window (10-19). Setting BadWindow flag to TRUE.
+Slot 10: BadWindow ACTIVE
+Slot 11: BadWindow ACTIVE
+Slot 12: BadWindow ACTIVE
+Slot 13: BadWindow ACTIVE
+Slot 14: BadWindow ACTIVE
+Slot 15: BadWindow ACTIVE
+Slot 16: BadWindow ACTIVE
+Slot 17: BadWindow ACTIVE
+Slot 18: BadWindow ACTIVE
+Slot 19: BadWindow ACTIVE
+✅ Validator TestVal: Slot 20. The failure at slot 10 is now outside the window. Clearing BadWindow flag.
+Slot 20: BadWindow CLEAR
+Slot 21: BadWindow CLEAR
+Slot 22: BadWindow CLEAR
+Slot 23: BadWindow CLEAR
+Slot 24: BadWindow CLEAR
+Slot 25: BadWindow CLEAR
+Slot 26: BadWindow CLEAR
+Slot 27: BadWindow CLEAR
+Slot 28: BadWindow CLEAR
+Slot 29: BadWindow CLEAR
+Window sliding successful

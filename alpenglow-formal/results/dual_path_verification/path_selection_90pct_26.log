@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/path_selection_test --stake-percent 90 --seed 26`
+Running path selection test: 90% stake, seed 26
+Correct path selected
+Selected path: fast

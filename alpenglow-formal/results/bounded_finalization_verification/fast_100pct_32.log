@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/bounded_finalization_test --path fast --stake-percent 100 --seed 32`
+Running bounded finalization test: fast path, 100% stake, bounded test, 20ms delay, 20% offline, seed 32
+Fast path finalization successful
+Finalization time: 1

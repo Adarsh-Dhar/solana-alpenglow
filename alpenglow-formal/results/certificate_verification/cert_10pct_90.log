@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.10s
+    Finished `release` profile [optimized] target(s) in 0.04s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/certificate_verification --adversary-stake 10 --seed 90`
 Running certificate verification: equivocation attack, 10% adversary, seed 90
 --- Alpenglow Certificate Uniqueness Simulation ---

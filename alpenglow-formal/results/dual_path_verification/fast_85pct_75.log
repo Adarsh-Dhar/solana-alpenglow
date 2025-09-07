@@ -1,0 +1,6 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/dual_path_test --path fast --threshold 80 --stake-percent 85 --seed 75`
+Running dual path test: fast path, 80% threshold, 85% stake, seed 75
+Fast path finalization successful
+Finalization time: 1
+Rounds completed: 1

@@ -1,4 +1,4 @@
-    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.05s
      Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/leader_verification --test-type rotation --seed 16`
 Running leader verification: rotation test, window 10, failure rate 20%, seed 16
 --- Alpenglow Leader Window Simulation ---
@@ -12,11 +12,11 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 3 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 4 | Leader: Val-C ---
+--- Slot 4 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 5 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 6 | Leader: Val-D ---
+--- Slot 6 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 7 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
@@ -24,18 +24,18 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 9 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 10 | Leader: Val-A ---
+--- Slot 10 | Leader: Val-D ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 11 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 12 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 13 | Leader: Val-C ---
+--- Slot 13 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 14 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 15 | Leader: Val-D ---
-🔴 LIVENESS FAILURE: Leader Val-D for slot 15 is offline!
+--- Slot 15 | Leader: Val-C ---
+🔴 LIVENESS FAILURE: Leader Val-C for slot 15 is offline!
  Validator Val-B: Observed SkipCertificate for slot 15.
 🚦 Validator Val-B: The failure is INSIDE the current window (15-24). Setting BadWindow flag to TRUE.
   -> State: BadWindow Active! Optimistic paths are DISABLED.
@@ -45,7 +45,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 18 | Leader: Val-B ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 19 | Leader: Val-A ---
+--- Slot 19 | Leader: Val-D ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 20 | Leader: Val-A ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
@@ -55,7 +55,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 23 | Leader: Val-C ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
---- Slot 24 | Leader: Val-D ---
+--- Slot 24 | Leader: Val-C ---
   -> State: BadWindow Active! Optimistic paths are DISABLED.
 --- Slot 25 | Leader: Val-B ---
 ✅ Validator Val-B: Slot 25. The failure at slot 15 is now outside the window. Clearing BadWindow flag.
@@ -64,7 +64,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 27 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 28 | Leader: Val-A ---
+--- Slot 28 | Leader: Val-D ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 29 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
@@ -72,7 +72,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 31 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 32 | Leader: Val-C ---
+--- Slot 32 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 33 | Leader: Val-C ---
   -> State: Normal. Optimistic paths are ENABLED.
@@ -82,7 +82,7 @@ Leader window size is 10 slots. A leader will fail at slot 15.
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 36 | Leader: Val-B ---
   -> State: Normal. Optimistic paths are ENABLED.
---- Slot 37 | Leader: Val-A ---
+--- Slot 37 | Leader: Val-D ---
   -> State: Normal. Optimistic paths are ENABLED.
 --- Slot 38 | Leader: Val-A ---
   -> State: Normal. Optimistic paths are ENABLED.

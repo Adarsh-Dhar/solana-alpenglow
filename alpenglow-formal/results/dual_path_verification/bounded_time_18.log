@@ -1,0 +1,7 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/bounded_time_test --max-ticks 10 --seed 18`
+Running bounded time test: 10 max ticks, seed 18
+Bounded finalization time verified
+Fast path time: 1
+Slow path time: 2
+Bounded time: 1
