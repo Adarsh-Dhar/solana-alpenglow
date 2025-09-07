@@ -1,0 +1,38 @@
+    Finished `release` profile [optimized] target(s) in 0.03s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/certificate_verification --adversary-stake 20 --seed 43`
+Running certificate verification: equivocation attack, 20% adversary, seed 43
+--- Alpenglow Certificate Uniqueness Simulation ---
+
+An adversary (Validator 99, Stake: 100) will try to notarize two blocks for Slot 5.
+
+✅ Validator 0 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 1 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 2 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 3 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 4 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 5 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 6 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 7 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 8 (Stake: 50): Voted for hash 'Some("block-hash-alpha")' in slot 5.
+✅ Validator 9 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 10 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 11 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 12 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 13 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 14 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 15 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 16 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+✅ Validator 17 (Stake: 50): Voted for hash 'Some("block-hash-bravo")' in slot 5.
+ Adversary 99 maliciously creates votes for BOTH hashes.
+
+Validator 100: Aggregating certificates from vote pool...
+  - Checking (5, Some("block-hash-alpha")): Total stake = 550/1000
+  - Checking (5, Some("block-hash-bravo")): Total stake = 550/1000
+
+--- Simulation Results ---
+🔵 NOTE: No certificate was formed because neither option reached the 60% threshold.
+Final stake for Hash A: 550 (Honest: 450, Adversary: 100)
+Final stake for Hash B: 550 (Honest: 450, Adversary: 100)
+Required stake: 600
+Because neither side could reach the threshold alone, and honest validators did not vote for both, no conflicting certificate could be created.
+Certificate uniqueness maintained

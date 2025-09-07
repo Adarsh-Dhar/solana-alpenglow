@@ -1,0 +1,19 @@
+    Finished `release` profile [optimized] target(s) in 0.03s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --test-type partition --seed 1`
+Running resilience verification: partition test, 20% byzantine, 20% offline, seed 1
+
+--- SCENARIO 3: Network Partition Recovery ---
+
+PHASE 1: Network is partitioned. Validators can only see votes from their own partition.
+Partition A Certificates: {}
+
+RESULT (During Partition):
+✅ SUCCESS (Safety): No certificate was formed in Partition A as it lacks a 60% supermajority.
+   The network is stalled but safe from a chain split.
+
+PHASE 2: Partition heals. All nodes can now see all votes.
+
+RESULT (After Healing):
+✅ SUCCESS (Recovery): A certificate was formed after healing!
+   The network successfully recovered and can now make progress on a single, unified chain.
+Partition recovery successful

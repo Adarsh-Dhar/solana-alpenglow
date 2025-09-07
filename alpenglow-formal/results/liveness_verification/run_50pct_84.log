@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/liveness_verification --responsive-stake 50 --seed 84`
+Running liveness verification with 50% responsive stake, seed 84
+
+--- SCENARIO: 50% Responsive Stake ---
+Fast Path Threshold: 800 | Slow Path Threshold: 600
+
+T0: Leader 0 proposes block 'B1' for Slot 1.
+
+RESULT: Liveness Failure! Slot did not finalize within the time limit.
+Liveness Failure! Slot did not finalize within the time limit.

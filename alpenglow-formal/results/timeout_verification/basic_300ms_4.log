@@ -1,0 +1,46 @@
+    Finished `release` profile [optimized] target(s) in 0.03s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/timeout_verification --test-type basic --timeout 300 --seed 4`
+Running timeout verification: basic test, 300ms timeout, 20ms delay, 20% offline, seed 4
+--- Alpenglow Timeout & Skip Certificate Simulation ---
+Simulating a slow leader for Slot 8. Timeout is 100ms.
+
+✅ Validator  0: Received block 'late-block-hash' and cast NotarVote.
+Validator  0: Started timer for Slot 8.
+✅ Validator  1: Received block 'late-block-hash' and cast NotarVote.
+Validator  1: Started timer for Slot 8.
+Validator  2: Started timer for Slot 8.
+🔴 Validator  2: TIMEOUT for Slot 8!
+✉️ Validator  2: Generating and broadcasting SkipVote for Slot 8.
+Validator  3: Started timer for Slot 8.
+🔴 Validator  3: TIMEOUT for Slot 8!
+✉️ Validator  3: Generating and broadcasting SkipVote for Slot 8.
+Validator  4: Started timer for Slot 8.
+🔴 Validator  4: TIMEOUT for Slot 8!
+✉️ Validator  4: Generating and broadcasting SkipVote for Slot 8.
+Validator  5: Started timer for Slot 8.
+🔴 Validator  5: TIMEOUT for Slot 8!
+✉️ Validator  5: Generating and broadcasting SkipVote for Slot 8.
+Validator  6: Started timer for Slot 8.
+🔴 Validator  6: TIMEOUT for Slot 8!
+✉️ Validator  6: Generating and broadcasting SkipVote for Slot 8.
+Validator  7: Started timer for Slot 8.
+🔴 Validator  7: TIMEOUT for Slot 8!
+✉️ Validator  7: Generating and broadcasting SkipVote for Slot 8.
+Validator  8: Started timer for Slot 8.
+🔴 Validator  8: TIMEOUT for Slot 8!
+✉️ Validator  8: Generating and broadcasting SkipVote for Slot 8.
+Validator  9: Started timer for Slot 8.
+🔴 Validator  9: TIMEOUT for Slot 8!
+✉️ Validator  9: Generating and broadcasting SkipVote for Slot 8.
+
+Validator  0: Aggregating from 10 total votes...
+🔥 CERTIFICATE FORMED for (8, None)! Stake: 800
+🚦 Validator  0: Observed SkipCertificate. Setting BadWindow flag to TRUE.
+
+Validator  0: Checking conditions to cast FinalVote for slot 7...
+❌ Validator  0: CANNOT cast FinalVote. BadWindow flag is active.
+
+--- Simulation Results ---
+A SkipCertificate was formed because 800/1000 stake voted to skip, exceeding the 60% threshold.
+This correctly triggered the BadWindow flag, preventing optimistic finalization votes and maintaining network safety during a period of liveness failure.
+Timeout handling successful

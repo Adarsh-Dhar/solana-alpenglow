@@ -1,0 +1,29 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/liveness_verification --responsive-stake 90 --seed 79`
+Running liveness verification with 90% responsive stake, seed 79
+
+--- SCENARIO: 90% Responsive Stake ---
+Fast Path Threshold: 800 | Slow Path Threshold: 600
+
+T0: Leader 0 proposes block 'B1' for Slot 1.
+  T2: Validator 0 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 0 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 1 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 1 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 2 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 2 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 3 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 3 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 4 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 4 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 5 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 5 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 6 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 6 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 7 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 7 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+  T2: Validator 8 NOTARIZED Slot 1. Broadcasting FinalVote. Stake: 600
+  T2: Validator 8 FINALIZED Slot 1 via FAST PATH (1 Round). Stake: 800
+
+RESULT: Liveness Success! Slot finalized at T=2.
+Liveness Success! Slot finalized at T=2.

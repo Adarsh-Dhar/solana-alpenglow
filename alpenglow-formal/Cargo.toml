@@ -3,6 +3,58 @@ name = "alpenglow-formal"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "safety_verification"
+path = "src/bin/safety_verification.rs"
+
+[[bin]]
+name = "liveness_verification"
+path = "src/bin/liveness_verification.rs"
+
+[[bin]]
+name = "resilience_verification"
+path = "src/bin/resilience_verification.rs"
+
+[[bin]]
+name = "certificate_verification"
+path = "src/bin/certificate_verification.rs"
+
+[[bin]]
+name = "leader_verification"
+path = "src/bin/leader_verification.rs"
+
+[[bin]]
+name = "timeout_verification"
+path = "src/bin/timeout_verification.rs"
+
+[[bin]]
+name = "rotor_verification"
+path = "src/bin/rotor_verification.rs"
+
+[[bin]]
+name = "votor_benchmark"
+path = "src/bin/votor_benchmark.rs"
+
+[[bin]]
+name = "simulation_benchmark"
+path = "src/bin/simulation_benchmark.rs"
+
+[[bin]]
+name = "dual_path_test"
+path = "src/bin/dual_path_test.rs"
+
+[[bin]]
+name = "bounded_finalization_test"
+path = "src/bin/bounded_finalization_test.rs"
+
+[[bin]]
+name = "path_selection_test"
+path = "src/bin/path_selection_test.rs"
+
+[[bin]]
+name = "bounded_time_test"
+path = "src/bin/bounded_time_test.rs"
+
 [dependencies]
 env_logger = "0.11.8"
 num_cpus = "1.17.0"

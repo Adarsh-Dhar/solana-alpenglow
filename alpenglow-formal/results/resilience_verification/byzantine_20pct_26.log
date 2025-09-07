@@ -1,0 +1,10 @@
+    Finished `release` profile [optimized] target(s) in 0.03s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --byzantine-stake 20 --test-type safety --seed 26`
+Running resilience verification: safety test, 20% byzantine, 20% offline, seed 26
+
+--- SCENARIO 1: Safety with 20% Byzantine Stake ---
+Adversary will try to get two certificates for Slot 10 ('BLOCK_A' and 'BLOCK_B').
+
+RESULT:
+🔴 FAILURE: Safety violated! Two conflicting certificates were formed.
+Safety maintained

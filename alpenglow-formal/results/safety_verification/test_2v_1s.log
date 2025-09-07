@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.18s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/safety_verification --validators 2 --slots 1 --seed 12345`
+Running safety verification with 2 validators, 1 slots, seed 12345
+Checking. states=12, unique=11, depth=3
+Done. states=3065, unique=456, depth=21, sec=1

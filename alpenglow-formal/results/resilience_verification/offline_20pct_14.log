@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized] target(s) in 0.03s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --offline-stake 20 --test-type liveness --seed 14`
+Running resilience verification: liveness test, 20% byzantine, 20% offline, seed 14
+
+--- SCENARIO 2: Liveness with 20% Non-Responsive Stake ---
+Total responsive stake: 800/1000
+Required for progress: 600
+
+RESULT:
+✅ SUCCESS: Liveness maintained. The responsive stake was sufficient to form a certificate and finalize the block.
+Liveness maintained

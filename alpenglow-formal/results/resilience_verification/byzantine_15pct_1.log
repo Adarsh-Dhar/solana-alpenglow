@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized] target(s) in 0.09s
+     Running `/Users/adarsh/Documents/solana-alpenglow/alpenglow-formal/target/release/resilience_verification --byzantine-stake 15 --test-type safety --seed 1`
+Running resilience verification: safety test, 15% byzantine, 20% offline, seed 1
+
+--- SCENARIO 1: Safety with 15% Byzantine Stake ---
+Adversary will try to get two certificates for Slot 10 ('BLOCK_A' and 'BLOCK_B').
+
+RESULT:
+✅ SUCCESS: Safety maintained. It's impossible to form two conflicting certificates.
+   The adversary can't force honest nodes to vote twice, and the remaining stake is insufficient to reach the 60% threshold for two separate blocks.
+Safety maintained

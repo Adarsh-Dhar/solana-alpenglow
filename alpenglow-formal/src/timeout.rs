@@ -74,7 +74,7 @@ impl Validator {
         // We'll check for a block after a delay.
         let mut rng = rand::thread_rng();
         let jitter = rng.gen_range(-5..=5);
-        let timeout_duration = Duration::from_millis(SLOT_TIMEOUT_MILLIS + jitter as u64);
+        let timeout_duration = Duration::from_millis((SLOT_TIMEOUT_MILLIS as i64 + jitter as i64).max(1) as u64);
         thread::sleep(timeout_duration);
 
         // Check if we managed to vote for a block in time
