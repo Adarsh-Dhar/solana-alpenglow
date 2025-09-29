@@ -146,18 +146,18 @@ cargo run --bin workload_generator -- --transactions 10000
 
 ## Documentation
 
-### Protocol Documentation
+See `docs/` for complete documentation:
 
-- **[Alpenglow Whitepaper](docs/whitepaper.md)**: Complete protocol specification
-- **[Formal Verification Report](alpenglow-formal/VERIFICATION_STATUS.md)**: Detailed verification results
-- **[API Documentation](docs/api.md)**: Rust API reference
-- **[Performance Analysis](docs/performance.md)**: Benchmarking and scalability analysis
-
-### Verification Documentation
-
-- **[Verification Scripts](alpenglow-formal/scripts/README.md)**: Complete script documentation
-- **[Model Specifications](alpenglow-formal/src/modelling/)**: Formal model implementations
-- **[Test Results](alpenglow-formal/results/)**: Generated verification reports
+- `docs/index.md` — Docs home and navigation
+- `docs/technical-report.md` — Complete technical report
+- `docs/architecture.md` — Architecture and data flow
+- `docs/performance.md` — Benchmarks and scalability
+- `docs/verification.md` — Formal verification suite
+- `docs/simulations.md` — Simulations and datasets
+- `docs/node.md` — Standalone node usage and config
+- `docs/benchmarks.md` — Micro-benchmarks
+- `docs/tests.md` — Test suites
+- `docs/api.md` — Crate layout and API docs
 
 ### Key Files
 
